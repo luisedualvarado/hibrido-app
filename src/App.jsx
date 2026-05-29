@@ -37,6 +37,16 @@ const MIN_YEAR = 2026
 const MIN_MONTH = 5
 const PUBLIC_READ_ONLY = import.meta.env.VITE_PUBLIC_READ_ONLY === 'true'
 const PUBLIC_VIEWS = ['dashboard', 'monthly', 'daily']
+const PUBLIC_JUNE_OFFICE93_IDS = [
+  'hilario-martin',
+  'quintero-brayan',
+  'tarazona-elkin',
+  'olea-david',
+  'plazas-paula',
+  'hernandez-ivonne',
+  'cardenas-jaime',
+  'camargo-jessel',
+]
 const STORAGE_KEY = 'hibrido-app-state-v2'
 const BACKUP_KEY = 'hibrido-app-state-v2-backup'
 const BACKUP_HISTORY_KEY = 'hibrido-app-state-v2-backups'
@@ -145,8 +155,11 @@ export default function App() {
   }
 
   const computed = useMemo(() => {
+    const publicJuneOffice93 = PUBLIC_READ_ONLY && year === MIN_YEAR && month === MIN_MONTH
+      ? PUBLIC_JUNE_OFFICE93_IDS
+      : null
     const office93AssignedAuto = assignOffice93ForMonth({ employees, params, monthIndex: month, manualOffice93 })
-    const office93Assigned = hasManualOffice93 ? Array.from(new Set(manualOffice93)) : office93AssignedAuto
+    const office93Assigned = publicJuneOffice93 || (hasManualOffice93 ? Array.from(new Set(manualOffice93)) : office93AssignedAuto)
     const effectiveEmployees = applyOffice93Assignment(employees, office93Assigned)
 
     const base = generateMonthlySchedule({
