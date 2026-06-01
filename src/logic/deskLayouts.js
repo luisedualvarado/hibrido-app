@@ -7,10 +7,26 @@ export const PHYSICAL_SEATS_BY_LOCATION = {
   OFICINA_93: ['39', '41', '42', '43', '44', '45', '46', '47', '48', '49', '51', 'NN'],
 }
 
+export const DESK_PLAN_META = {
+  WEWORK: {
+    title: 'Plano general WeWork',
+    subtitle: 'Referencia visual de puestos sobre el corredor principal.',
+    markers: ['Ventanas', 'Pasillo central', 'Ingreso'],
+    corridorLabel: 'Circulacion principal',
+  },
+  OFICINA_93: {
+    title: 'Plano Oficina 93',
+    subtitle: 'Distribucion compacta de puestos para personal fijo y flotante.',
+    markers: ['Archivo', 'Mesa de apoyo', 'Ingreso'],
+    corridorLabel: 'Paso lateral',
+  },
+}
+
 export const DESK_LAYOUTS = {
   WEWORK: [
     {
-      title: 'Zona 1',
+      title: 'Frente de ventanas',
+      note: 'Bloque principal con puestos 1 al 17.',
       rows: [
         ['17', null, '2', '1'],
         ['16', null, '3', '4'],
@@ -21,7 +37,8 @@ export const DESK_LAYOUTS = {
       ],
     },
     {
-      title: 'Zona 2',
+      title: 'Corredor lateral',
+      note: 'Bloque intermedio con puestos 18 al 32.',
       rows: [
         ['32', null, '18'],
         ['31', null, '19'],
@@ -34,7 +51,8 @@ export const DESK_LAYOUTS = {
       ],
     },
     {
-      title: 'Zona 3',
+      title: 'Bloque posterior',
+      note: 'Zona posterior de puestos altos 148 a 154.',
       rows: [
         ['150', null, '151'],
         ['149', null, '152'],
@@ -45,7 +63,8 @@ export const DESK_LAYOUTS = {
   ],
   OFICINA_93: [
     {
-      title: 'Bloque 93',
+      title: 'Bloque operativo',
+      note: 'Puestos alrededor del nucleo de circulacion.',
       rows: [
         ['48', '49', null],
         ['47', null, '51'],

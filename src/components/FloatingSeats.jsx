@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { MONTH_LABEL, WEEKDAY_LABEL, prettyDate, weekdayKey } from '../logic/dateUtils.js'
-import { DESK_LAYOUTS, PHYSICAL_SEATS_BY_LOCATION } from '../logic/deskLayouts.js'
+import { DESK_LAYOUTS, DESK_PLAN_META, PHYSICAL_SEATS_BY_LOCATION } from '../logic/deskLayouts.js'
 
 const LOCATIONS = [
   ['WEWORK', 'WeWork'],
@@ -178,6 +178,7 @@ export default function FloatingSeats({
           const dayData = dayByLocation[location]
           const manualAssignments = manualAssignmentsByLocation[location]
           const availableSeats = dayData.availableSeats?.length ? dayData.availableSeats : PHYSICAL_SEATS_BY_LOCATION[location]
+          const planMeta = DESK_PLAN_META[location]
 
           return (
             <div key={location} className="card">
@@ -185,9 +186,24 @@ export default function FloatingSeats({
               <div className="card-body desk-board-body">
                 <div className="desk-location-shell">
                   <div className="desk-plan-wrap">
+                    <div className="desk-plan-stage">
+                      <div className="desk-plan-head">
+                        <div>
+                          <div className="desk-plan-title">{planMeta.title}</div>
+                          <div className="desk-plan-copy">{planMeta.subtitle}</div>
+                        </div>
+                        <div className="desk-plan-markers">
+                          {planMeta.markers.map((marker) => <span key={`${location}-${marker}`} className="desk-plan-marker">{marker}</span>)}
+                        </div>
+                      </div>
+
+                      <div className="desk-plan-corridor">{planMeta.corridorLabel}</div>
+
+                      <div className="desk-plan-grid">
                     {DESK_LAYOUTS[location].map((section) => (
                       <div key={`${location}-${section.title}`} className="desk-section">
                         <div className="desk-section-title">{section.title}</div>
+                        {section.note && <div className="desk-section-note">{section.note}</div>}
                         <div className="desk-seat-grid" style={{ gridTemplateColumns: `repeat(${Math.max(...section.rows.map((row) => row.length))}, minmax(72px, 1fr))` }}>
                           {section.rows.flatMap((row, rowIndex) => row.map((seat, seatIndex) => {
                             if (!seat) return <div key={`${location}-${section.title}-${rowIndex}-${seatIndex}`} className="desk-seat-gap" />
@@ -202,6 +218,8 @@ export default function FloatingSeats({
                         </div>
                       </div>
                     ))}
+                      </div>
+                    </div>
                   </div>
 
                   <div className="desk-side-panel">
