@@ -3,6 +3,7 @@ import { Sidebar } from './components/Shared.jsx'
 import Dashboard from './components/Dashboard.jsx'
 import MonthlySchedule from './components/MonthlySchedule.jsx'
 import DailyView from './components/DailyView.jsx'
+import FloatingSeats from './components/FloatingSeats.jsx'
 import People from './components/People.jsx'
 import Restrictions from './components/Restrictions.jsx'
 import { Absences, Holidays, Parking, Office93Rotation, ManualOverrides, Settings, ExportPanel } from './components/Panels.jsx'
@@ -20,6 +21,7 @@ const TITLES = {
   dashboard: 'Dashboard',
   monthly: 'Programacion mensual',
   daily: 'Vista diaria',
+  desks: 'Puestos',
   people: 'Personal',
   restrictions: 'Restricciones',
   absences: 'Vacaciones / Ausencias',
@@ -635,6 +637,15 @@ export default function App() {
               parkingUsage={computed.parkingUsage}
               params={computed.effectiveParams}
               hideAlerts={isReadOnly}
+            />
+          )}
+          {view === 'desks' && (
+            <FloatingSeats
+              schedule={computed.schedule}
+              employees={computed.effectiveEmployees}
+              floatingResult={computed.floatingResult}
+              month={month}
+              year={year}
             />
           )}
           {view === 'people' && <People employees={employees} setEmployees={setEmployees} onDeleteEmployee={deleteEmployee} />}
