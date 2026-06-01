@@ -98,6 +98,14 @@ function buildSavedWeekEntry(week) {
   }
 }
 
+function isSavedWeekGeneratedOverride(override) {
+  return typeof override?.reason === 'string' && /^Semana\s.+\sguardada$/i.test(override.reason)
+}
+
+function filterScheduleOverrides(overrides) {
+  return overrides.filter((override) => !(isSavedWeekGeneratedOverride(override) && ['VACATION', 'ABSENCE'].includes(override.status)))
+}
+
 function mergeEmployeeSeatDefaults(employeeList) {
   return employeeList.map((employee) => {
     const initialEmployee = INITIAL_EMPLOYEES_BY_ID[employee.id]
@@ -346,19 +354,20 @@ export default function App() {
     const office93AssignedAuto = assignOffice93ForMonth({ employees, params, monthIndex: month, manualOffice93 })
     const office93Assigned = publicJuneOffice93 || (hasManualOffice93 ? Array.from(new Set(manualOffice93)) : office93AssignedAuto)
     const effectiveEmployees = applyOffice93Assignment(employees, office93Assigned)
+    const effectiveManualOverrides = filterScheduleOverrides(manualOverrides)
 
     const base = generateMonthlySchedule({
       employees: effectiveEmployees,
       holidays,
       absences,
-      manualOverrides,
+      manualOverrides: effectiveManualOverrides,
       month,
       year,
       params: effectiveParams,
       generationSeed: `${year}-${month}`,
     })
     const schedule = enforceNoOfficeOvercapacity(
-      applyManualOverrides(base, manualOverrides, effectiveEmployees, effectiveParams),
+      applyManualOverrides(base, effectiveManualOverrides, effectiveEmployees, effectiveParams),
       effectiveEmployees,
       holidays,
       effectiveParams,
@@ -432,7 +441,7 @@ export default function App() {
   }, [])
 
   const saveWeek = useCallback((week) => {
-    const operationalStatuses = new Set(['HOME', 'OFFICE', 'VACATION', 'ABSENCE'])
+    const operationalStatuses = new Set(['HOME', 'OFFICE'])
     const weekDates = new Set(week.workdays)
 
     setManualOverrides((prev) => {
