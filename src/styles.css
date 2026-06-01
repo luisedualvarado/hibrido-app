@@ -429,6 +429,11 @@ tr:hover td { background: var(--gray-50); }
 .cell.hasAlert { box-shadow: inset 0 0 0 2px var(--red); }
 .cell.hasNotice { box-shadow: inset 0 0 0 2px var(--amber); }
 .cell.manual { box-shadow: inset 0 0 0 2px var(--amber); }
+.cell.desk-cell-unseated {
+  background: #fff3f2;
+  color: #a33424;
+  box-shadow: inset 0 0 0 1px rgba(192,57,43,.18);
+}
 
 /* Badges */
 .badge { display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:600; padding: 3px 9px; border-radius: 20px; }
@@ -838,27 +843,16 @@ tr:hover td { background: var(--gray-50); }
 }
 .desk-board-table-wrap { overflow: auto; }
 .desk-board-table { width: 100%; border-collapse: collapse; }
-.desk-week-table th,
-.desk-week-table td {
-  border: 1px solid #272727;
-  padding: 8px 10px;
-  text-align: center;
-  background: #fff;
-}
-.desk-week-table th:first-child,
-.desk-week-table td:first-child {
-  text-align: left;
-  min-width: 210px;
-}
-.desk-week-section-row td {
-  background: #f6f2d8;
-  font-weight: 800;
-}
-.desk-week-section-row td:not(:first-child) {
-  background: #fff8d8;
-}
 .desk-week-person {
   font-weight: 600;
+}
+.desk-matrix-section-name {
+  background: #f8f1cf !important;
+  font-weight: 800 !important;
+  text-transform: none;
+}
+.desk-matrix-section-fill {
+  background: #fff8d8;
 }
 .desk-chip {
   display: inline-flex;

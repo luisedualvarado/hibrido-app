@@ -27,6 +27,14 @@ function resolveDeskCell(employee, iso, schedule, floatingResult) {
   return { label: 'Sin puesto', tone: 'unseated' }
 }
 
+function deskCellClassName(cell) {
+  if (cell.tone === 'WEWORK') return `cell OFFICE WEWORK readOnly ${cell.manual ? 'manual' : ''}`.trim()
+  if (cell.tone === 'OFICINA_93') return `cell OFFICE O93 readOnly ${cell.manual ? 'manual' : ''}`.trim()
+  if (cell.tone === 'unseated') return 'cell desk-cell-unseated readOnly'
+  if (cell.tone === 'empty') return 'cell NOT_APPLICABLE readOnly'
+  return `cell ${cell.tone} readOnly`.trim()
+}
+
 export default function FloatingSeats({ schedule, employees, floatingResult, month, year }) {
   const [selectedWeekId, setSelectedWeekId] = useState(schedule.weeks?.[0]?.weekId || '')
 
@@ -81,13 +89,16 @@ export default function FloatingSeats({ schedule, employees, floatingResult, mon
       <div className="card">
         <div className="card-head"><h3>Asignacion semanal de puestos flotantes</h3></div>
         <div className="card-body">
-          <div className="tbl-wrap desk-board-table-wrap">
-            <table className="desk-board-table desk-week-table">
+          <div className="matrix-wrap">
+            <table className="matrix desk-matrix">
               <thead>
                 <tr>
-                  <th>Ubicacion</th>
+                  <th className="name-col">Persona</th>
                   {selectedWeek.workdays.map((iso) => (
-                    <th key={`week-head-${iso}`}>{WEEKDAY_LABEL[weekdayKey(iso)]}</th>
+                    <th key={`week-head-${iso}`} className="dh">
+                      <div className="wd">{WEEKDAY_LABEL[weekdayKey(iso)].slice(0, 2)}</div>
+                      <div className="dn">{prettyDate(iso).split(' ')[0]}</div>
+                    </th>
                   ))}
                 </tr>
               </thead>
@@ -96,26 +107,26 @@ export default function FloatingSeats({ schedule, employees, floatingResult, mon
                   const floaters = floatersByLocation[location] || []
                   return (
                     <React.Fragment key={`week-${location}`}>
-                      <tr className="desk-week-section-row">
-                        <td>{label}</td>
+                      <tr className="desk-matrix-section-row">
+                        <td className="name-col desk-matrix-section-name">{label}</td>
                         {selectedWeek.workdays.map((iso) => (
-                          <td key={`section-${location}-${iso}`} />
+                          <td key={`section-${location}-${iso}`} className="daycell desk-matrix-section-fill" />
                         ))}
                       </tr>
                       {floaters.length === 0 && (
                         <tr>
-                          <td className="empty">Sin flotantes</td>
-                          {selectedWeek.workdays.map((iso) => <td key={`empty-${location}-${iso}`} className="empty">-</td>)}
+                          <td className="name-col empty">Sin flotantes</td>
+                          {selectedWeek.workdays.map((iso) => <td key={`empty-${location}-${iso}`} className="daycell"><div className="cell NOT_APPLICABLE readOnly">-</div></td>)}
                         </tr>
                       )}
                       {floaters.map((employee) => (
                         <tr key={`${location}-${employee.id}`}>
-                          <td className="desk-week-person">{employee.name}</td>
+                          <td className="name-col desk-week-person">{employee.name}</td>
                           {selectedWeek.workdays.map((iso) => {
                             const cell = resolveDeskCell(employee, iso, schedule, floatingResult)
                             return (
-                              <td key={`${employee.id}-${iso}`}>
-                                <span className={`desk-chip ${cell.tone} ${cell.manual ? 'manual' : ''}`}>{cell.label}</span>
+                              <td key={`${employee.id}-${iso}`} className="daycell">
+                                <div className={deskCellClassName(cell)}>{cell.label}</div>
                               </td>
                             )
                           })}
