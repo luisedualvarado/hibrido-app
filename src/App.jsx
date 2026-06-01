@@ -38,7 +38,7 @@ const EMPTY_ARRAY = []
 const MIN_YEAR = 2026
 const MIN_MONTH = 5
 const PUBLIC_READ_ONLY = import.meta.env.VITE_PUBLIC_READ_ONLY === 'true'
-const PUBLIC_VIEWS = ['dashboard', 'monthly', 'daily']
+const PUBLIC_VIEWS = ['dashboard', 'monthly', 'daily', 'desks']
 const PUBLIC_JUNE_OFFICE93_IDS = [
   'hilario-martin',
   'rodriguez-edwin',
@@ -244,7 +244,7 @@ export default function App() {
     typeof editableStored.month === 'number' ? editableStored.month : now.getMonth()
   ), [editableStored, now])
   const [view, setView] = useState('dashboard')
-  const showPeriodControls = ['dashboard', 'monthly', 'daily', 'office93'].includes(view)
+  const showPeriodControls = ['dashboard', 'monthly', 'daily', 'desks', 'office93'].includes(view)
   const [employees, setEmployees] = useState(mergeEmployeeSeatDefaults(editableStored.employees || initialEmployees))
   const [holidays, setHolidays] = useState(editableStored.holidays || initialHolidays)
   const [absences, setAbsences] = useState(editableStored.absences || initialAbsences)
@@ -254,12 +254,14 @@ export default function App() {
   const [year, setYear] = useState(initialPeriod.year)
   const [manualParking, setManualParking] = useState(editableStored.manualParking || [])
   const [manualOffice93ByPeriod, setManualOffice93ByPeriod] = useState(editableStored.manualOffice93ByPeriod || {})
+  const [manualDeskAssignmentsByPeriod, setManualDeskAssignmentsByPeriod] = useState(editableStored.manualDeskAssignmentsByPeriod || {})
   const [savedWeeksByPeriod, setSavedWeeksByPeriod] = useState(editableStored.savedWeeksByPeriod || {})
   const [didHydrateStoredState, setDidHydrateStoredState] = useState(false)
   const [generationTick, setGenerationTick] = useState(0)
   const periodKey = periodKeyFor(year, month)
   const hasManualOffice93 = Object.prototype.hasOwnProperty.call(manualOffice93ByPeriod, periodKey)
   const manualOffice93 = hasManualOffice93 ? manualOffice93ByPeriod[periodKey] : EMPTY_ARRAY
+  const manualDeskAssignments = manualDeskAssignmentsByPeriod[periodKey] || EMPTY_ARRAY
   const savedWeeks = savedWeeksByPeriod[periodKey] || EMPTY_ARRAY
 
   const setSafeView = useCallback((nextView) => {
@@ -301,6 +303,17 @@ export default function App() {
 
   const setManualOffice93ForPeriod = useCallback((updater) => {
     setManualOffice93ByPeriod((prev) => {
+      const current = prev[periodKey] || []
+      const next = typeof updater === 'function' ? updater(current) : updater
+      const copy = { ...prev }
+      if (next === undefined || next === null) delete copy[periodKey]
+      else copy[periodKey] = next
+      return copy
+    })
+  }, [periodKey])
+
+  const setManualDeskAssignmentsForPeriod = useCallback((updater) => {
+    setManualDeskAssignmentsByPeriod((prev) => {
       const current = prev[periodKey] || []
       const next = typeof updater === 'function' ? updater(current) : updater
       const copy = { ...prev }
@@ -367,7 +380,13 @@ export default function App() {
     const parkingAssigned = (manualParking.length ? manualParking : parkingAssignedAuto).slice(0, effectiveParams.parkingSpots)
 
     const parkingUsage = parkingUsageByDay(effectiveSchedule, parkingAssigned, effectiveEmployeesView, effectiveSchedule.days)
-    const { result: floatingResult, alerts: floatAlerts } = assignFloatingSeats(effectiveSchedule, effectiveEmployeesView, effectiveSchedule.days, effectiveParams)
+    const { result: floatingResult, alerts: floatAlerts } = assignFloatingSeats(
+      effectiveSchedule,
+      effectiveEmployeesView,
+      effectiveSchedule.days,
+      effectiveParams,
+      manualDeskAssignments
+    )
 
     const { summary, alerts: dailyAlerts } = buildDailySummary(
       effectiveSchedule,
@@ -399,7 +418,7 @@ export default function App() {
       kpis,
       effectiveParams,
     }
-  }, [employees, holidays, absences, manualOverrides, month, year, params, manualParking, manualOffice93, hasManualOffice93, generationTick, isReadOnly])
+  }, [employees, holidays, absences, manualOverrides, month, year, params, manualParking, manualOffice93, hasManualOffice93, generationTick, isReadOnly, manualDeskAssignments])
 
   const saveOverride = useCallback((employeeId, date, status, reason) => {
     setManualOverrides((prev) => {
@@ -465,11 +484,15 @@ export default function App() {
     setManualOffice93ByPeriod((prev) => Object.fromEntries(
       Object.entries(prev).map(([key, ids]) => [key, ids.filter((id) => id !== employeeId)])
     ))
+    setManualDeskAssignmentsByPeriod((prev) => Object.fromEntries(
+      Object.entries(prev).map(([key, assignments]) => [key, assignments.filter((assignment) => assignment.employeeId !== employeeId)])
+    ))
   }, [])
 
   const clearOverrides = () => {
     setManualOverrides([])
     setManualOffice93ForPeriod([])
+    setManualDeskAssignmentsForPeriod([])
     setSavedWeeksByPeriod((prev) => ({ ...prev, [periodKey]: [] }))
   }
   const regenerate = () => {
@@ -487,6 +510,7 @@ export default function App() {
     year,
     manualParking,
     manualOffice93ByPeriod,
+    manualDeskAssignmentsByPeriod,
     savedWeeksByPeriod,
   })
 
@@ -504,6 +528,7 @@ export default function App() {
     setMonth(nextPeriod.month)
     if (snap.manualParking) setManualParking(snap.manualParking)
     if (snap.manualOffice93ByPeriod) setManualOffice93ByPeriod(snap.manualOffice93ByPeriod)
+    if (snap.manualDeskAssignmentsByPeriod) setManualDeskAssignmentsByPeriod(snap.manualDeskAssignmentsByPeriod)
     if (snap.savedWeeksByPeriod) setSavedWeeksByPeriod(snap.savedWeeksByPeriod)
     else if (snap.manualOffice93) {
       const importedKey = periodKeyFor(nextPeriod.year, nextPeriod.month)
@@ -545,13 +570,14 @@ export default function App() {
       year,
       manualParking,
       manualOffice93ByPeriod,
+      manualDeskAssignmentsByPeriod,
       savedWeeksByPeriod,
     }
     const previous = window.localStorage.getItem(STORAGE_KEY)
     const next = JSON.stringify(state)
     if (previous && previous !== next) rememberBackup(previous)
     window.localStorage.setItem(STORAGE_KEY, next)
-  }, [employees, holidays, absences, manualOverrides, params, month, year, manualParking, manualOffice93ByPeriod, savedWeeksByPeriod, isReadOnly])
+  }, [employees, holidays, absences, manualOverrides, params, month, year, manualParking, manualOffice93ByPeriod, manualDeskAssignmentsByPeriod, savedWeeksByPeriod, isReadOnly])
 
   useEffect(() => {
     if (isReadOnly && !PUBLIC_VIEWS.includes(view)) setView('dashboard')
@@ -646,6 +672,9 @@ export default function App() {
               floatingResult={computed.floatingResult}
               month={month}
               year={year}
+              readOnly={isReadOnly}
+              manualDeskAssignments={manualDeskAssignments}
+              setManualDeskAssignments={setManualDeskAssignmentsForPeriod}
             />
           )}
           {view === 'people' && <People employees={employees} setEmployees={setEmployees} onDeleteEmployee={deleteEmployee} />}

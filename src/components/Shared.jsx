@@ -53,7 +53,7 @@ export function Sidebar({
   const [username, setUsername] = React.useState('')
   const [password, setPassword] = React.useState('')
   const navItems = readOnly
-    ? NAV.filter(([id]) => ['dashboard', 'monthly', 'daily'].includes(id))
+    ? NAV.filter(([id]) => ['dashboard', 'monthly', 'daily', 'desks'].includes(id))
     : NAV
 
   const handleSubmit = (event) => {

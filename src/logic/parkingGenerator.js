@@ -1,5 +1,6 @@
 // parkingGenerator.js — asignación mensual de parqueaderos por rotación.
 import { weekdayKey } from './dateUtils.js'
+import { PHYSICAL_SEATS_BY_LOCATION } from './deskLayouts.js'
 
 // Historial simulado de meses previos para que la rotación arranque "justa".
 // (Editable; refleja lo discutido: Johana/Gabriel, luego Pinto/Alvarado, etc.)
@@ -48,9 +49,9 @@ export function parkingUsageByDay(schedule, assigned, employees, days) {
   return usage
 }
 
-// seatAssignment.js — asignación diaria de puestos a flotantes en WeWork.
-// Los flotantes ocupan los puestos liberados por personas en TC/VAC/AUS.
-export function assignFloatingSeats(schedule, employees, days, params) {
+// seatAssignment.js — asignación diaria de puestos a flotantes.
+// Los flotantes ocupan los puestos físicos libres de WeWork y Oficina 93.
+export function assignFloatingSeats(schedule, employees, days, params, manualDeskAssignments = []) {
   const floaters = employees.filter((e) => e.isFloating && e.isActive && e.hybridApproved)
   const activeEmployees = employees.filter((e) => e.isActive)
   const employeesById = Object.fromEntries(employees.map((employee) => [employee.id, employee]))
@@ -59,18 +60,23 @@ export function assignFloatingSeats(schedule, employees, days, params) {
     OFICINA_93: 'Oficina 93',
   }
   const compareSeat = (left, right) => String(left).localeCompare(String(right), 'es', { numeric: true })
-  const seatsByLocation = activeEmployees.reduce((acc, employee) => {
-    if (!employee.baseSeat || !['WEWORK', 'OFICINA_93'].includes(employee.baseLocation)) return acc
-    if (!acc[employee.baseLocation].includes(employee.baseSeat)) acc[employee.baseLocation].push(employee.baseSeat)
+  const alternateLocationFor = (location) => location === 'WEWORK' ? 'OFICINA_93' : 'WEWORK'
+  const sortByName = (left, right) => left.name.localeCompare(right.name, 'es')
+  const seatsByLocation = {
+    WEWORK: [...PHYSICAL_SEATS_BY_LOCATION.WEWORK].sort(compareSeat),
+    OFICINA_93: [...PHYSICAL_SEATS_BY_LOCATION.OFICINA_93].sort(compareSeat),
+  }
+  const manualAssignmentsByDate = manualDeskAssignments.reduce((acc, assignment) => {
+    if (!assignment?.date) return acc
+    acc[assignment.date] = [...(acc[assignment.date] || []), assignment]
     return acc
-  }, { WEWORK: [], OFICINA_93: [] })
-  seatsByLocation.WEWORK.sort(compareSeat)
-  seatsByLocation.OFICINA_93.sort(compareSeat)
+  }, {})
 
   const result = {}   // iso -> { assigned: [{empId, seat, location}], unseated: [empId], freeSeats, byLocation }
   const alerts = []
 
   for (const iso of days) {
+    const manualAssignmentsForDate = manualAssignmentsByDate[iso] || []
     const cell0 = schedule.cells[`${floaters[0]?.id}__${iso}`]
     if (!cell0 || cell0.status === 'NOT_APPLICABLE' || cell0.status === 'HOLIDAY') {
       result[iso] = {
@@ -89,58 +95,152 @@ export function assignFloatingSeats(schedule, employees, days, params) {
     const byLocation = {}
 
     for (const location of ['WEWORK', 'OFICINA_93']) {
-      const occupiedSeats = activeEmployees
+      const presentRegularEmployees = activeEmployees
         .filter((employee) => !employee.isFloating && employee.baseLocation === location && employee.baseSeat)
         .filter((employee) => schedule.cells[`${employee.id}__${iso}`]?.status === 'OFFICE')
-        .map((employee) => employee.baseSeat)
-        .sort(compareSeat)
+      const explicitOccupiedAssignments = []
+      const explicitlyOccupiedSeats = new Set()
+
+      presentRegularEmployees.forEach((employee) => {
+        const seat = employee.baseSeat
+        if (!seat || !seatsByLocation[location].includes(seat) || explicitlyOccupiedSeats.has(seat)) return
+        explicitOccupiedAssignments.push({ empId: employee.id, seat, location, derived: false })
+        explicitlyOccupiedSeats.add(seat)
+      })
+
+      const remainingInventory = seatsByLocation[location].filter((seat) => !explicitlyOccupiedSeats.has(seat))
+      const derivedOccupiedAssignments = presentRegularEmployees
+        .filter((employee) => !explicitlyOccupiedSeats.has(employee.baseSeat))
+        .sort(sortByName)
+        .map((employee, index) => {
+          const seat = remainingInventory[index]
+          if (!seat) return null
+          return { empId: employee.id, seat, location, derived: true }
+        })
+        .filter(Boolean)
+
+      const occupiedAssignments = [...explicitOccupiedAssignments, ...derivedOccupiedAssignments].sort((left, right) => compareSeat(left.seat, right.seat))
+      const occupiedSeats = occupiedAssignments.map((assignment) => assignment.seat)
 
       const availableSeats = seatsByLocation[location].filter((seat) => !occupiedSeats.includes(seat))
+      const remainingSeats = [...availableSeats]
       const presentFloaters = floaters
         .filter((employee) => employee.baseLocation === location)
         .filter((employee) => schedule.cells[`${employee.id}__${iso}`]?.status === 'OFFICE')
-        .sort((left, right) => left.name.localeCompare(right.name, 'es'))
+        .sort(sortByName)
+      const pendingFloaters = [...presentFloaters]
+      const manualAssignmentsForLocation = manualAssignmentsForDate.filter((assignment) => assignment.location === location)
 
       const locationAssigned = []
       const locationUnseated = []
 
-      presentFloaters.forEach((employee, index) => {
-        const seat = availableSeats[index]
+      manualAssignmentsForLocation.forEach((assignment) => {
+        const employeeIndex = pendingFloaters.findIndex((employee) => employee.id === assignment.employeeId)
+        const seatIndex = remainingSeats.indexOf(assignment.seat)
+        if (employeeIndex === -1 || seatIndex === -1) {
+          alerts.push({
+            id: `manual-desk-${location}-${iso}-${alerts.length}`,
+            severity: 'INFO',
+            date: iso,
+            message: `${iso}: ajuste manual de puesto no aplicado en ${locationLabels[location]}.`,
+            rule: 'MANUAL_DESK_SKIPPED',
+            location,
+            employeeId: assignment.employeeId,
+          })
+          return
+        }
+
+        const manualAssignment = {
+          empId: assignment.employeeId,
+          seat: assignment.seat,
+          location,
+          alt: false,
+          manual: true,
+        }
+        assigned.push(manualAssignment)
+        locationAssigned.push(manualAssignment)
+        pendingFloaters.splice(employeeIndex, 1)
+        remainingSeats.splice(seatIndex, 1)
+      })
+
+      pendingFloaters.forEach((employee) => {
+        const seat = remainingSeats.shift()
         if (seat) {
-          const assignment = { empId: employee.id, seat, location, alt: false }
-          assigned.push(assignment)
-          locationAssigned.push(assignment)
+          const automaticAssignment = { empId: employee.id, seat, location, alt: false, manual: false }
+          assigned.push(automaticAssignment)
+          locationAssigned.push(automaticAssignment)
           return
         }
         unseated.push(employee.id)
         locationUnseated.push(employee.id)
       })
 
-      if (locationUnseated.length > 0) {
+      byLocation[location] = {
+        availableSeats,
+        openSeats: remainingSeats,
+        assigned: locationAssigned,
+        unseated: locationUnseated,
+        occupiedSeats,
+        occupiedAssignments,
+      }
+    }
+
+    for (const location of ['WEWORK', 'OFICINA_93']) {
+      const alternateLocation = alternateLocationFor(location)
+      const sourceUnseated = [...byLocation[location].unseated]
+      const alternateOpenSeats = [...byLocation[alternateLocation].openSeats]
+      if (sourceUnseated.length === 0 || alternateOpenSeats.length === 0) continue
+
+      const reassigned = []
+      sourceUnseated.forEach((employeeId) => {
+        const seat = alternateOpenSeats.shift()
+        if (!seat) return
+        const alternateAssignment = {
+          empId: employeeId,
+          seat,
+          location: alternateLocation,
+          alt: true,
+          manual: false,
+        }
+        assigned.push(alternateAssignment)
+        byLocation[alternateLocation].assigned.push(alternateAssignment)
+        reassigned.push(employeeId)
+        alerts.push({
+          id: `floater-alt-${employeeId}-${iso}`,
+          severity: 'INFO',
+          date: iso,
+          message: `${iso}: ${employeesById[employeeId]?.name || employeeId} usa un puesto libre en ${locationLabels[alternateLocation]}.`,
+          rule: 'FLOATER_ALT_SEAT',
+          location: alternateLocation,
+          employeeId,
+        })
+      })
+
+      byLocation[alternateLocation].openSeats = alternateOpenSeats
+      byLocation[location].unseated = byLocation[location].unseated.filter((employeeId) => !reassigned.includes(employeeId))
+    }
+
+    const unresolvedUnseated = ['WEWORK', 'OFICINA_93'].flatMap((location) => byLocation[location].unseated)
+
+    for (const location of ['WEWORK', 'OFICINA_93']) {
+      if (byLocation[location].unseated.length > 0) {
         alerts.push({
           id: `floater-${location}-${iso}`,
           severity: 'WARNING',
           date: iso,
-          message: `${iso}: ${locationUnseated.length} flotante(s) sin puesto disponible en ${locationLabels[location]}.`,
+          message: `${iso}: ${byLocation[location].unseated.length} flotante(s) sin puesto disponible en ${locationLabels[location]}.`,
           rule: 'FLOATER_NO_SEAT',
           location,
         })
-      }
-
-      byLocation[location] = {
-        availableSeats,
-        assigned: locationAssigned,
-        unseated: locationUnseated,
-        occupiedSeats,
       }
     }
 
     result[iso] = {
       assigned,
-      unseated,
+      unseated: unresolvedUnseated,
       freeSeats: byLocation.WEWORK.availableSeats.length,
       byLocation,
-      assignedByEmp: Object.fromEntries(assigned.map((entry) => [entry.empId, { seat: entry.seat, location: entry.location }])),
+      assignedByEmp: Object.fromEntries(assigned.map((entry) => [entry.empId, { seat: entry.seat, location: entry.location, manual: entry.manual, alt: entry.alt }])),
       employeesById,
     }
   }
