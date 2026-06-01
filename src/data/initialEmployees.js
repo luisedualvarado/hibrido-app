@@ -77,6 +77,57 @@ const DOUBLE_HOME = new Set([
   'Vera, Steven',
 ])
 
+const BASE_SEATS = {
+  'Salinas, Nelson': '1',
+  'Gonzalez, Luis': '2',
+  'Teheran, Gabriel': '3',
+  'Reyes, Oscar': '4',
+  'Achury, Ashly': '5',
+  'Barboza, Liset': '6',
+  'Escobar, Andrea': '7',
+  'Castañeda, Kevin': '8',
+  'Desalvador, Diego': '9',
+  'Morales, Jonathan': '10',
+  'Molina, Jessica': '11',
+  'Bello, Astrid': '12',
+  'Almeida, Daniel': '13',
+  'Bejarano, Fernando': '14',
+  'Ochoa, Rafael': '15',
+  'Quiroz Millan, Juan': '16',
+  'Garcia, Gabriel': '17',
+  'Alvarado, Luis': '18',
+  'Guevara, Marylin': '19',
+  'Contreras, Julian': '20',
+  'Rodriguez, Sofia': '21',
+  'Archila, Karen': '22',
+  'Bohorquez, Samuel': '23',
+  'Escobar, Andrés': '27',
+  'Artunduaga, Angélica': '28',
+  'Vanegas, Kaory': '29',
+  'Rojas, Camilo': '30',
+  'Giraldo, Nelson': '31',
+  'Morales, Fabio': '32',
+  'Hernandez, Ivonne': '39',
+  'Plazas, Paula': '42',
+  'Espinoza, Paula': '43',
+  'Agudelo, Carlos': '44',
+  'Olea, David': '45',
+  'Tarazona, Elkin': '46',
+  'Quintero, Brayan': '47',
+  'Ladino, Alejandro': '48',
+  'Rodriguez, Edwin': '49',
+  'Hilario, Martin': '51',
+  'Cardenas, Jaime': 'NN',
+  'Camargo, Jessel': 'NN',
+  'Latorre, Juan Camilo': '148',
+  'Daza, Santiago': '149',
+  'Perez, Leidy': '150',
+  'Niño, Samuel': '151',
+  'Tibocha, Jhonattan': '152',
+  'Cárdenas, Andrés Felipe': '153',
+  'Lancheros, Rafael': '154',
+}
+
 // id, name, role, email, team(letra), subdiscipline, oficina/remoto del Excel
 const RAW = [
   [1, 'Achury, Ashly', 'BIM Technician', 'Ashly.Achury@aecom.com', 'H', 'HVAC', 'Oficina'],
@@ -193,7 +244,7 @@ export const initialEmployees = RAW.map(([item, name, role, email, team, sub, mo
     discipline: sub,            // HVAC, ELE, COM, SEG, FADS, COORD
     team,                       // H, E, I, LIDER
     baseLocation: isRemote ? 'REMOTO' : 'WEWORK',
-    baseSeat: '',
+    baseSeat: BASE_SEATS[name] || '',
     isActive: !isRemote,        // Remotos quedan inactivos en el híbrido
     hybridApproved,             // Solo entran a rotacion quienes tienen hibrido aprobado.
     isFloating,

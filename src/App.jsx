@@ -84,6 +84,7 @@ const BACKUP_HISTORY_KEY = 'hibrido-app-state-v2-backups'
 const ADMIN_SESSION_KEY = 'hibrido-app-admin-session'
 const ADMIN_USERNAME = import.meta.env.VITE_ADMIN_USERNAME || 'admin'
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'admin123'
+const INITIAL_EMPLOYEES_BY_ID = Object.fromEntries(initialEmployees.map((employee) => [employee.id, employee]))
 
 function buildSavedWeekEntry(week) {
   return {
@@ -93,6 +94,14 @@ function buildSavedWeekEntry(week) {
     workdays: week.workdays,
     savedAt: new Date().toISOString(),
   }
+}
+
+function mergeEmployeeSeatDefaults(employeeList) {
+  return employeeList.map((employee) => {
+    const initialEmployee = INITIAL_EMPLOYEES_BY_ID[employee.id]
+    if (!initialEmployee?.baseSeat || employee.baseSeat) return employee
+    return { ...employee, baseSeat: initialEmployee.baseSeat }
+  })
 }
 
 function normalizePeriod(year, month) {
@@ -134,7 +143,18 @@ function latestBackup() {
 function loadStoredState() {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY)
-    return parseJSON(raw) || {}
+    const parsed = parseJSON(raw) || {}
+    if (!Array.isArray(parsed.employees)) return parsed
+
+    return {
+      ...parsed,
+      employees: parsed.employees.map((employee) => {
+        const fallback = INITIAL_EMPLOYEES_BY_ID[employee.id]
+        if (!fallback) return employee
+        if (employee.baseSeat) return employee
+        return fallback.baseSeat ? { ...employee, baseSeat: fallback.baseSeat } : employee
+      }),
+    }
   } catch (error) {
     return {}
   }
@@ -223,7 +243,7 @@ export default function App() {
   ), [editableStored, now])
   const [view, setView] = useState('dashboard')
   const showPeriodControls = ['dashboard', 'monthly', 'daily', 'office93'].includes(view)
-  const [employees, setEmployees] = useState(editableStored.employees || initialEmployees)
+  const [employees, setEmployees] = useState(mergeEmployeeSeatDefaults(editableStored.employees || initialEmployees))
   const [holidays, setHolidays] = useState(editableStored.holidays || initialHolidays)
   const [absences, setAbsences] = useState(editableStored.absences || initialAbsences)
   const [manualOverrides, setManualOverrides] = useState(editableStored.manualOverrides || [])
@@ -469,7 +489,7 @@ export default function App() {
   })
 
   const importSnapshot = (snap) => {
-    if (snap.employees) setEmployees(snap.employees)
+    if (snap.employees) setEmployees(mergeEmployeeSeatDefaults(snap.employees))
     if (snap.holidays) setHolidays(snap.holidays)
     if (snap.absences) setAbsences(snap.absences)
     if (snap.manualOverrides) setManualOverrides(snap.manualOverrides)
