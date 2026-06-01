@@ -737,6 +737,7 @@ export default function App() {
               params={params}
               month={month}
               year={year}
+              readOnly={isReadOnly}
             />
           )}
           {view === 'parking' && (
