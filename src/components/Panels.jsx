@@ -336,6 +336,7 @@ export function Lockers({ employees, lockerResult, manualLockers, setManualLocke
   }).sort(byName), [discipline, eligibleEmployees, search])
 
   const updateLocker = (employeeId, value) => {
+    if (readOnly) return
     setManualLockers((prev) => {
       const current = Array.isArray(prev) ? prev : []
       const withoutCurrent = current.filter((assignment) => assignment.employeeId !== employeeId)
@@ -345,7 +346,10 @@ export function Lockers({ employees, lockerResult, manualLockers, setManualLocke
     })
   }
 
-  const clearManual = () => setManualLockers(undefined)
+  const clearManual = () => {
+    if (readOnly) return
+    setManualLockers(undefined)
+  }
   const occupiedLockers = lockers.filter((locker) => locker.occupants.length)
 
   const summaryCard = (
@@ -391,104 +395,96 @@ export function Lockers({ employees, lockerResult, manualLockers, setManualLocke
 
   return (
     <div>
-      {!readOnly && (
-        <>
-          <div className="kpi-grid" style={{ marginBottom: 18 }}>
-            <Kpi label="Mes" value={MONTH_LABEL[month]} hint={String(year)} />
-            <Kpi label="Lockers" value={params.lockers} />
-            <Kpi label="Personas WeWork" value={eligibleEmployees.length} />
-            <Kpi label="Lockers compartidos" value={lockerResult?.sharedLockerCount || 0} tone={(lockerResult?.sharedLockerCount || 0) > 0 ? 'amber' : 'green'} />
-            <Kpi label="Sin locker" value={lockerResult?.unassignedCount || 0} tone={(lockerResult?.unassignedCount || 0) > 0 ? 'red' : 'green'} />
+      <div className="kpi-grid" style={{ marginBottom: 18 }}>
+        <Kpi label="Mes" value={MONTH_LABEL[month]} hint={String(year)} />
+        <Kpi label="Lockers" value={params.lockers} />
+        <Kpi label="Personas WeWork" value={eligibleEmployees.length} />
+        <Kpi label="Lockers compartidos" value={lockerResult?.sharedLockerCount || 0} tone={(lockerResult?.sharedLockerCount || 0) > 0 ? 'amber' : 'green'} />
+        <Kpi label="Sin locker" value={lockerResult?.unassignedCount || 0} tone={(lockerResult?.unassignedCount || 0) > 0 ? 'red' : 'green'} />
+      </div>
+
+      <div className="grid2">
+        <div className="card">
+          <div className="card-head">
+            <h3>Asignacion mensual individual</h3>
+            <button className="btn btn-sm btn-ghost" onClick={clearManual}>Volver a automatico</button>
           </div>
-
-          <div className="grid2">
-            <div className="card">
-              <div className="card-head">
-                <h3>Asignacion mensual individual</h3>
-                <button className="btn btn-sm btn-ghost" onClick={clearManual}>Volver a automatico</button>
+          <div className="card-body">
+            <p className="muted" style={{ marginTop: 0, fontSize: 12 }}>
+              La base toma a todas las personas activas que quedan en WeWork este mes. Puedes fijar lockers manualmente por persona; cuando no alcanza, la app comparte un locker entre dos personas.
+            </p>
+            <div className="filters">
+              <div className="fg" style={{ minWidth: 220 }}>
+                <label>Buscar</label>
+                <input type="text" placeholder="Nombre, correo..." value={search} onChange={(e) => setSearch(e.target.value)} />
               </div>
-              <div className="card-body">
-                <p className="muted" style={{ marginTop: 0, fontSize: 12 }}>
-                  La base toma a todas las personas activas que quedan en WeWork este mes. Puedes fijar lockers manualmente por persona; cuando no alcanza, la app comparte un locker entre dos personas.
-                </p>
-                <div className="filters">
-                  <div className="fg" style={{ minWidth: 220 }}>
-                    <label>Buscar</label>
-                    <input type="text" placeholder="Nombre, correo..." value={search} onChange={(e) => setSearch(e.target.value)} />
-                  </div>
-                  <div className="fg">
-                    <label>Disciplina</label>
-                    <select value={discipline} onChange={(e) => setDiscipline(e.target.value)}>
-                      <option value="ALL">Todas</option>
-                      {disciplines.map((item) => <option key={item} value={item}>{item}</option>)}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="tbl-wrap">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Persona</th>
-                        <th>Disciplina</th>
-                        <th>Locker asignado</th>
-                        <th>Modo</th>
-                        <th>Editar</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredEmployees.length === 0 && <tr><td colSpan={5} className="empty">No hay personas con esos filtros.</td></tr>}
-                      {filteredEmployees.map((employee) => {
-                        const assignment = assignmentByEmployee[employee.id]
-                        const manualAssignment = manualByEmployee[employee.id]
-                        return (
-                          <tr key={employee.id}>
-                            <td>{employee.name}</td>
-                            <td><span className="badge gray">{employee.discipline}</span></td>
-                            <td>
-                              {!assignment?.lockerNumber ? (
-                                <span className="badge red">Sin locker</span>
-                              ) : (
-                                <>
-                                  <span className={`badge ${assignment.shared ? 'amber' : 'navy'}`}>Locker {assignment.lockerNumber}</span>
-                                  {assignment.shared && <span className="badge amber" style={{ marginLeft: 6 }}>Compartido</span>}
-                                </>
-                              )}
-                            </td>
-                            <td>
-                              <span className={`badge ${manualAssignment ? 'green' : 'gray'}`}>{manualAssignment ? 'Manual' : 'Automatico'}</span>
-                            </td>
-                            <td>
-                              <select value={manualAssignment?.lockerNumber || ''} onChange={(e) => updateLocker(employee.id, e.target.value)}>
-                                <option value="">Automatico</option>
-                                {lockerCodes.map((lockerNumber) => {
-                                  const occupants = occupancyByLocker[lockerNumber] || []
-                                  const canUse = occupants.length < 2 || occupants.includes(employee.id)
-                                  return (
-                                    <option key={lockerNumber} value={lockerNumber} disabled={!canUse}>
-                                      Locker {lockerNumber}{occupants.length ? ` · ${occupants.length}/2` : ''}
-                                    </option>
-                                  )
-                                })}
-                              </select>
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+              <div className="fg">
+                <label>Disciplina</label>
+                <select value={discipline} onChange={(e) => setDiscipline(e.target.value)}>
+                  <option value="ALL">Todas</option>
+                  {disciplines.map((item) => <option key={item} value={item}>{item}</option>)}
+                </select>
               </div>
             </div>
 
-            {summaryCard}
+            <div className="tbl-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Persona</th>
+                    <th>Disciplina</th>
+                    <th>Locker asignado</th>
+                    <th>Modo</th>
+                    <th>Editar</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredEmployees.length === 0 && <tr><td colSpan={5} className="empty">No hay personas con esos filtros.</td></tr>}
+                  {filteredEmployees.map((employee) => {
+                    const assignment = assignmentByEmployee[employee.id]
+                    const manualAssignment = manualByEmployee[employee.id]
+                    return (
+                      <tr key={employee.id}>
+                        <td>{employee.name}</td>
+                        <td><span className="badge gray">{employee.discipline}</span></td>
+                        <td>
+                          {!assignment?.lockerNumber ? (
+                            <span className="badge red">Sin locker</span>
+                          ) : (
+                            <>
+                              <span className={`badge ${assignment.shared ? 'amber' : 'navy'}`}>Locker {assignment.lockerNumber}</span>
+                              {assignment.shared && <span className="badge amber" style={{ marginLeft: 6 }}>Compartido</span>}
+                            </>
+                          )}
+                        </td>
+                        <td>
+                          <span className={`badge ${manualAssignment ? 'green' : 'gray'}`}>{manualAssignment ? 'Manual' : 'Automatico'}</span>
+                        </td>
+                        <td>
+                          <select value={manualAssignment?.lockerNumber || ''} onChange={(e) => updateLocker(employee.id, e.target.value)}>
+                            <option value="">Automatico</option>
+                            {lockerCodes.map((lockerNumber) => {
+                              const occupants = occupancyByLocker[lockerNumber] || []
+                              const canUse = occupants.length < 2 || occupants.includes(employee.id)
+                              return (
+                                <option key={lockerNumber} value={lockerNumber} disabled={!canUse}>
+                                  Locker {lockerNumber}{occupants.length ? ` · ${occupants.length}/2` : ''}
+                                </option>
+                              )
+                            })}
+                          </select>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </>
-      )}
+        </div>
 
-      {readOnly && (
-        summaryCard
-      )}
+        {summaryCard}
+      </div>
     </div>
   )
 }
