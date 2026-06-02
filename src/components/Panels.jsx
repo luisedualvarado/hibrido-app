@@ -351,6 +351,7 @@ export function Lockers({ employees, lockerResult, manualLockers, setManualLocke
     setManualLockers(undefined)
   }
   const occupiedLockers = lockers.filter((locker) => locker.occupants.length)
+  const showManualControls = !readOnly
 
   const summaryCard = (
     <div className="card">
@@ -407,7 +408,7 @@ export function Lockers({ employees, lockerResult, manualLockers, setManualLocke
         <div className="card">
           <div className="card-head">
             <h3>Asignacion mensual individual</h3>
-            <button className="btn btn-sm btn-ghost" onClick={clearManual}>Volver a automatico</button>
+            {showManualControls && <button className="btn btn-sm btn-ghost" onClick={clearManual}>Volver a automatico</button>}
           </div>
           <div className="card-body">
             <p className="muted" style={{ marginTop: 0, fontSize: 12 }}>
@@ -461,18 +462,24 @@ export function Lockers({ employees, lockerResult, manualLockers, setManualLocke
                           <span className={`badge ${manualAssignment ? 'green' : 'gray'}`}>{manualAssignment ? 'Manual' : 'Automatico'}</span>
                         </td>
                         <td>
-                          <select value={manualAssignment?.lockerNumber || ''} onChange={(e) => updateLocker(employee.id, e.target.value)}>
-                            <option value="">Automatico</option>
-                            {lockerCodes.map((lockerNumber) => {
-                              const occupants = occupancyByLocker[lockerNumber] || []
-                              const canUse = occupants.length < 2 || occupants.includes(employee.id)
-                              return (
-                                <option key={lockerNumber} value={lockerNumber} disabled={!canUse}>
-                                  Locker {lockerNumber}{occupants.length ? ` · ${occupants.length}/2` : ''}
-                                </option>
-                              )
-                            })}
-                          </select>
+                          {showManualControls ? (
+                            <select value={manualAssignment?.lockerNumber || ''} onChange={(e) => updateLocker(employee.id, e.target.value)}>
+                              <option value="">Automatico</option>
+                              {lockerCodes.map((lockerNumber) => {
+                                const occupants = occupancyByLocker[lockerNumber] || []
+                                const canUse = occupants.length < 2 || occupants.includes(employee.id)
+                                return (
+                                  <option key={lockerNumber} value={lockerNumber} disabled={!canUse}>
+                                    Locker {lockerNumber}{occupants.length ? ` · ${occupants.length}/2` : ''}
+                                  </option>
+                                )
+                              })}
+                            </select>
+                          ) : manualAssignment?.lockerNumber ? (
+                            <span className="badge green">Locker {manualAssignment.lockerNumber}</span>
+                          ) : (
+                            <span className="muted">Automatico</span>
+                          )}
                         </td>
                       </tr>
                     )
