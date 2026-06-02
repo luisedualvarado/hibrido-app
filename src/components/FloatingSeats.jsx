@@ -111,6 +111,10 @@ const PRESET_TONE_BY_LABEL = {
 
 const byName = (a, b) => a.name.localeCompare(b.name, 'es')
 
+function isEligibleFloater(employee) {
+  return employee?.isFloating && employee.isActive && employee.hybridApproved
+}
+
 function resolveDeskCell(employee, iso, schedule, floatingResult, location, presetLabels = null) {
   const presetLabel = presetLabels?.[`${employee.id}__${iso}`]
   if (presetLabel) {
@@ -146,8 +150,8 @@ export default function FloatingSeats({ schedule, employees, floatingResult, mon
 
   const filtered = useMemo(() => {
     const baseEmployees = deskPreset
-      ? LOCATIONS.flatMap(([location]) => (deskPreset[location] || []).map((employeeId) => employeesById[employeeId]).filter(Boolean))
-      : employees.filter((employee) => employee.isFloating && employee.isActive)
+      ? LOCATIONS.flatMap(([location]) => (deskPreset[location] || []).map((employeeId) => employeesById[employeeId]).filter(isEligibleFloater))
+      : employees.filter(isEligibleFloater)
 
     return baseEmployees
       .filter((employee) => !search || employee.name.toLowerCase().includes(search.toLowerCase()))
