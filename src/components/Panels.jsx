@@ -396,6 +396,10 @@ export function Lockers({ employees, lockerResult, manualLockers, setManualLocke
 
   return (
     <div>
+      {readOnly ? (
+        summaryCard
+      ) : (
+        <>
       <div className="kpi-grid" style={{ marginBottom: 18 }}>
         <Kpi label="Mes" value={MONTH_LABEL[month]} hint={String(year)} />
         <Kpi label="Lockers" value={params.lockers} />
@@ -492,6 +496,8 @@ export function Lockers({ employees, lockerResult, manualLockers, setManualLocke
 
         {summaryCard}
       </div>
+        </>
+      )}
     </div>
   )
 }
