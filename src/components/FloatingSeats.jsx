@@ -149,9 +149,13 @@ export default function FloatingSeats({ schedule, employees, floatingResult, mon
   const deskPreset = month === 5 && year === 2026 ? JUNE_2026_DESK_PRESET : null
 
   const filtered = useMemo(() => {
+    const eligibleEmployees = employees.filter(isEligibleFloater)
     const baseEmployees = deskPreset
-      ? LOCATIONS.flatMap(([location]) => (deskPreset[location] || []).map((employeeId) => employeesById[employeeId]).filter(isEligibleFloater))
-      : employees.filter(isEligibleFloater)
+      ? [
+          ...LOCATIONS.flatMap(([location]) => (deskPreset[location] || []).map((employeeId) => employeesById[employeeId]).filter(isEligibleFloater)),
+          ...eligibleEmployees.filter((employee) => !(deskPreset[employee.baseLocation] || []).includes(employee.id)),
+        ]
+      : eligibleEmployees
 
     return baseEmployees
       .filter((employee) => !search || employee.name.toLowerCase().includes(search.toLowerCase()))
