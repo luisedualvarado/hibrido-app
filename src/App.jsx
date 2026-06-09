@@ -867,6 +867,21 @@ export default function App() {
     if (isReadOnly && !PUBLIC_VIEWS.includes(view)) setView('dashboard')
   }, [isReadOnly, view])
 
+  const syncIndicator = useMemo(() => {
+    if (!GITHUB_SYNC_ENABLED || !isAdmin) return null
+
+    const byStatus = {
+      idle: { tone: 'gray', label: 'Sin sync', detail: 'Carga un token en Exportar / Importar.' },
+      connecting: { tone: 'navy', label: 'Conectando', detail: 'Validando acceso al repo compartido.' },
+      ready: { tone: 'navy', label: 'Listo', detail: 'Esperando el siguiente cambio para publicar.' },
+      publishing: { tone: 'amber', label: 'Publicando', detail: 'Actualizando la vista de visitantes.' },
+      synced: { tone: 'green', label: 'Sincronizado', detail: 'La vista publica ya refleja tus cambios.' },
+      error: { tone: 'red', label: 'Error sync', detail: githubSyncError || 'Revisa el token o el acceso al repo.' },
+    }
+
+    return byStatus[githubSyncStatus] || byStatus.idle
+  }, [githubSyncError, githubSyncStatus, isAdmin])
+
   return (
     <div className="app">
       <Sidebar
@@ -887,6 +902,12 @@ export default function App() {
             </div>
           </div>
           <div className="topbar-actions">
+            {syncIndicator && (
+              <div className="topbar-sync" title={syncIndicator.detail}>
+                <span className={`badge ${syncIndicator.tone}`}>{syncIndicator.label}</span>
+                <span className="topbar-sync-copy">{syncIndicator.detail}</span>
+              </div>
+            )}
             {showPeriodControls && !activeReadOnly && (
               <div className="topbar-period">
                 <div className="topbar-field">
