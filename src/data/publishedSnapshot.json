@@ -10,7 +10,7 @@
       "discipline": "HVAC",
       "team": "H",
       "baseLocation": "WEWORK",
-      "baseSeat": "5",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": true,
       "isFloating": false,
@@ -20,6 +20,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -32,7 +33,7 @@
       "discipline": "ELE",
       "team": "E",
       "baseLocation": "WEWORK",
-      "baseSeat": "13",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": true,
       "isFloating": false,
@@ -42,6 +43,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -54,7 +56,7 @@
       "discipline": "ELE",
       "team": "E",
       "baseLocation": "WEWORK",
-      "baseSeat": "18",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": true,
       "isFloating": false,
@@ -64,6 +66,7 @@
       "parkingEligible": true,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -86,6 +89,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -108,6 +112,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -120,7 +125,7 @@
       "discipline": "ELE",
       "team": "E",
       "baseLocation": "WEWORK",
-      "baseSeat": "14",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": true,
       "isFloating": false,
@@ -130,6 +135,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -142,7 +148,7 @@
       "discipline": "ELE",
       "team": "E",
       "baseLocation": "WEWORK",
-      "baseSeat": "12",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": true,
       "isFloating": false,
@@ -152,6 +158,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -164,9 +171,9 @@
       "discipline": "ELE",
       "team": "E",
       "baseLocation": "WEWORK",
-      "baseSeat": "23",
+      "baseSeat": "",
       "isActive": true,
-      "hybridApproved": false,
+      "hybridApproved": true,
       "isFloating": false,
       "doubleHomeConsecutive": false,
       "avoidConsecutiveHomeDays": false,
@@ -174,6 +181,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -196,6 +204,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -208,7 +217,7 @@
       "discipline": "COM",
       "team": "I",
       "baseLocation": "WEWORK",
-      "baseSeat": "NN",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": true,
       "isFloating": false,
@@ -218,19 +227,20 @@
       "parkingEligible": false,
       "restrictionType": "SPECIAL",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": true,
-      "notes": "Restricción aprobada (compensado)."
+      "notes": "Restricci�n aprobada (compensado)."
     },
     {
       "id": "cardenas-andres-felipe",
       "item": 11,
-      "name": "Cárdenas, Andrés Felipe",
+      "name": "C�rdenas, Andr�s Felipe",
       "role": "Engineer",
       "email": "andres.f.cardenas@aecom.com",
       "discipline": "ELE",
       "team": "E",
       "baseLocation": "WEWORK",
-      "baseSeat": "153",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": true,
       "isFloating": false,
@@ -240,6 +250,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -252,7 +263,7 @@
       "discipline": "COORD",
       "team": "I",
       "baseLocation": "WEWORK",
-      "baseSeat": "NN",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": true,
       "isFloating": false,
@@ -262,8 +273,9 @@
       "parkingEligible": true,
       "restrictionType": "EVEN_DAYS",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": true,
-      "notes": "Condición especial + pico y placa. Parqueadero si está asignado."
+      "notes": "Condici�n especial + pico y placa. Parqueadero si est� asignado."
     },
     {
       "id": "cortes-german",
@@ -276,7 +288,7 @@
       "baseLocation": "WEWORK",
       "baseSeat": "",
       "isActive": true,
-      "hybridApproved": true,
+      "hybridApproved": false,
       "isFloating": false,
       "doubleHomeConsecutive": false,
       "avoidConsecutiveHomeDays": false,
@@ -284,6 +296,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -296,7 +309,7 @@
       "discipline": "ELE",
       "team": "E",
       "baseLocation": "WEWORK",
-      "baseSeat": "149",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": true,
       "isFloating": false,
@@ -306,6 +319,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -318,7 +332,7 @@
       "discipline": "ELE",
       "team": "E",
       "baseLocation": "WEWORK",
-      "baseSeat": "9",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": true,
       "isFloating": false,
@@ -328,6 +342,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -350,6 +365,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -362,7 +378,7 @@
       "discipline": "HVAC",
       "team": "H",
       "baseLocation": "WEWORK",
-      "baseSeat": "7",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": true,
       "isFloating": false,
@@ -372,19 +388,20 @@
       "parkingEligible": false,
       "restrictionType": "ODD_DAYS",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": "Regla individual aprobada (movilidad)."
     },
     {
       "id": "escobar-andres",
       "item": 18,
-      "name": "Escobar, Andrés",
+      "name": "Escobar, Andr�s",
       "role": "Engineer",
       "email": "andres.escobar@aecom.com",
       "discipline": "ELE",
       "team": "E",
       "baseLocation": "WEWORK",
-      "baseSeat": "27",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": true,
       "isFloating": false,
@@ -394,9 +411,10 @@
       "parkingEligible": false,
       "restrictionType": "FIXED_DAY",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "fixedDay": "WEDNESDAY",
       "special": false,
-      "notes": "Día fijo aprobado (estudios)."
+      "notes": "D�a fijo aprobado (estudios)."
     },
     {
       "id": "fuentes-andres",
@@ -417,6 +435,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -431,7 +450,7 @@
       "baseLocation": "WEWORK",
       "baseSeat": "",
       "isActive": true,
-      "hybridApproved": false,
+      "hybridApproved": true,
       "isFloating": true,
       "doubleHomeConsecutive": true,
       "avoidConsecutiveHomeDays": false,
@@ -439,6 +458,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -451,7 +471,7 @@
       "discipline": "COM",
       "team": "I",
       "baseLocation": "WEWORK",
-      "baseSeat": "17",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": true,
       "isFloating": false,
@@ -461,6 +481,7 @@
       "parkingEligible": true,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -473,7 +494,7 @@
       "discipline": "ELE",
       "team": "E",
       "baseLocation": "WEWORK",
-      "baseSeat": "31",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": true,
       "isFloating": false,
@@ -483,6 +504,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -505,13 +527,14 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
     {
       "id": "gonzalez-julian",
       "item": 24,
-      "name": "González, Julian",
+      "name": "Gonz�lez, Julian",
       "role": "Engineer",
       "email": "julian.j.gonzalez@aecom.com",
       "discipline": "COORD",
@@ -527,8 +550,9 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
-      "notes": "Sin aprobación de híbrido (no rota)."
+      "notes": "Sin aprobaci�n de h�brido (no rota)."
     },
     {
       "id": "gonzalez-luis",
@@ -539,9 +563,9 @@
       "discipline": "HVAC",
       "team": "H",
       "baseLocation": "WEWORK",
-      "baseSeat": "2",
+      "baseSeat": "",
       "isActive": true,
-      "hybridApproved": false,
+      "hybridApproved": true,
       "isFloating": false,
       "doubleHomeConsecutive": false,
       "avoidConsecutiveHomeDays": false,
@@ -549,6 +573,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -571,6 +596,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -583,7 +609,7 @@
       "discipline": "ELE",
       "team": "E",
       "baseLocation": "WEWORK",
-      "baseSeat": "19",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": true,
       "isFloating": false,
@@ -593,6 +619,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -605,18 +632,19 @@
       "discipline": "COM",
       "team": "I",
       "baseLocation": "WEWORK",
-      "baseSeat": "39",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": true,
       "isFloating": false,
-      "doubleHomeConsecutive": true,
+      "doubleHomeConsecutive": false,
       "avoidConsecutiveHomeDays": false,
       "hasCar": false,
       "parkingEligible": false,
       "restrictionType": "ODD_DAYS",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": true,
       "special": false,
-      "notes": "Condición especial aprobada."
+      "notes": "Condici�n especial aprobada: TC en todos los d�as impares."
     },
     {
       "id": "hilario-martin",
@@ -627,7 +655,7 @@
       "discipline": "SEG",
       "team": "I",
       "baseLocation": "WEWORK",
-      "baseSeat": "51",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": true,
       "isFloating": false,
@@ -637,9 +665,10 @@
       "parkingEligible": false,
       "restrictionType": "FIXED_DAY",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "fixedDay": "WEDNESDAY",
       "special": false,
-      "notes": "Día fijo aprobado."
+      "notes": "D�a fijo aprobado."
     },
     {
       "id": "jimenez-johana",
@@ -660,6 +689,7 @@
       "parkingEligible": true,
       "restrictionType": "EVEN_DAYS",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": "Regla individual aprobada."
     },
@@ -672,7 +702,7 @@
       "discipline": "ELE",
       "team": "E",
       "baseLocation": "WEWORK",
-      "baseSeat": "154",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": true,
       "isFloating": false,
@@ -682,6 +712,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -694,7 +725,7 @@
       "discipline": "ELE",
       "team": "E",
       "baseLocation": "WEWORK",
-      "baseSeat": "148",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": true,
       "isFloating": false,
@@ -704,6 +735,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -726,6 +758,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -738,7 +771,7 @@
       "discipline": "ELE",
       "team": "E",
       "baseLocation": "WEWORK",
-      "baseSeat": "11",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": true,
       "isFloating": false,
@@ -748,6 +781,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -760,7 +794,7 @@
       "discipline": "ELE",
       "team": "E",
       "baseLocation": "WEWORK",
-      "baseSeat": "32",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": true,
       "isFloating": false,
@@ -770,6 +804,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -782,7 +817,7 @@
       "discipline": "ELE",
       "team": "E",
       "baseLocation": "WEWORK",
-      "baseSeat": "10",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": true,
       "isFloating": false,
@@ -792,9 +827,10 @@
       "parkingEligible": false,
       "restrictionType": "FIXED_DAY",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "fixedDay": "THURSDAY",
       "special": false,
-      "notes": "Día fijo aprobado (formación)."
+      "notes": "D�a fijo aprobado (formaci�n)."
     },
     {
       "id": "munoz-cesar",
@@ -815,19 +851,20 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
     {
       "id": "nino-samuel",
       "item": 38,
-      "name": "Niño, Samuel",
+      "name": "Ni�o, Samuel",
       "role": "Engineer",
       "email": "samuel.nino@aecom.com",
       "discipline": "ELE",
       "team": "E",
       "baseLocation": "WEWORK",
-      "baseSeat": "151",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": true,
       "isFloating": false,
@@ -837,6 +874,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -849,7 +887,7 @@
       "discipline": "FADS",
       "team": "I",
       "baseLocation": "WEWORK",
-      "baseSeat": "15",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": true,
       "isFloating": false,
@@ -859,6 +897,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -871,7 +910,7 @@
       "discipline": "COM",
       "team": "I",
       "baseLocation": "WEWORK",
-      "baseSeat": "45",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": true,
       "isFloating": false,
@@ -881,6 +920,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -903,6 +943,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -925,6 +966,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -947,6 +989,7 @@
       "parkingEligible": true,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -959,7 +1002,7 @@
       "discipline": "SEG",
       "team": "I",
       "baseLocation": "WEWORK",
-      "baseSeat": "42",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": true,
       "isFloating": false,
@@ -969,6 +1012,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -981,7 +1025,7 @@
       "discipline": "SEG",
       "team": "I",
       "baseLocation": "WEWORK",
-      "baseSeat": "47",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": true,
       "isFloating": false,
@@ -991,6 +1035,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -1003,7 +1048,7 @@
       "discipline": "COM",
       "team": "I",
       "baseLocation": "WEWORK",
-      "baseSeat": "16",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": true,
       "isFloating": false,
@@ -1013,6 +1058,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -1035,6 +1081,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -1047,7 +1094,7 @@
       "discipline": "ELE",
       "team": "E",
       "baseLocation": "WEWORK",
-      "baseSeat": "30",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": true,
       "isFloating": false,
@@ -1057,6 +1104,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -1079,6 +1127,7 @@
       "parkingEligible": true,
       "restrictionType": "ALLOWED_DAYS",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "allowedDays": [
         "TUESDAY",
         "WEDNESDAY"
@@ -1105,6 +1154,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -1117,9 +1167,9 @@
       "discipline": "COM",
       "team": "I",
       "baseLocation": "WEWORK",
-      "baseSeat": "46",
+      "baseSeat": "",
       "isActive": true,
-      "hybridApproved": true,
+      "hybridApproved": false,
       "isFloating": false,
       "doubleHomeConsecutive": false,
       "avoidConsecutiveHomeDays": false,
@@ -1127,6 +1177,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -1139,7 +1190,7 @@
       "discipline": "ELE",
       "team": "E",
       "baseLocation": "WEWORK",
-      "baseSeat": "152",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": true,
       "isFloating": false,
@@ -1149,6 +1200,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -1171,6 +1223,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -1183,7 +1236,7 @@
       "discipline": "ELE",
       "team": "E",
       "baseLocation": "WEWORK",
-      "baseSeat": "29",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": true,
       "isFloating": false,
@@ -1193,6 +1246,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -1215,6 +1269,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -1237,6 +1292,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -1259,6 +1315,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -1271,9 +1328,9 @@
       "discipline": "HVAC",
       "team": "H",
       "baseLocation": "WEWORK",
-      "baseSeat": "20",
+      "baseSeat": "",
       "isActive": true,
-      "hybridApproved": false,
+      "hybridApproved": true,
       "isFloating": false,
       "doubleHomeConsecutive": false,
       "avoidConsecutiveHomeDays": false,
@@ -1281,6 +1338,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -1293,7 +1351,7 @@
       "discipline": "ELE",
       "team": "E",
       "baseLocation": "WEWORK",
-      "baseSeat": "21",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": true,
       "isFloating": false,
@@ -1303,8 +1361,9 @@
       "parkingEligible": false,
       "restrictionType": "PENDING",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
-      "notes": "Pendiente por verificar (¿lunes? día SENA)."
+      "notes": "Pendiente por verificar (�lunes? d�a SENA)."
     },
     {
       "id": "barboza-liset",
@@ -1315,7 +1374,7 @@
       "discipline": "HVAC",
       "team": "H",
       "baseLocation": "WEWORK",
-      "baseSeat": "6",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": true,
       "isFloating": false,
@@ -1325,6 +1384,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -1337,7 +1397,7 @@
       "discipline": "HVAC",
       "team": "H",
       "baseLocation": "WEWORK",
-      "baseSeat": "3",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": true,
       "isFloating": false,
@@ -1347,6 +1407,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -1359,7 +1420,7 @@
       "discipline": "SEG",
       "team": "I",
       "baseLocation": "WEWORK",
-      "baseSeat": "49",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": false,
       "isFloating": false,
@@ -1369,6 +1430,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -1381,7 +1443,7 @@
       "discipline": "SEG",
       "team": "I",
       "baseLocation": "WEWORK",
-      "baseSeat": "48",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": false,
       "isFloating": false,
@@ -1391,6 +1453,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -1403,7 +1466,7 @@
       "discipline": "SEG",
       "team": "I",
       "baseLocation": "WEWORK",
-      "baseSeat": "44",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": false,
       "isFloating": false,
@@ -1413,6 +1476,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -1425,7 +1489,7 @@
       "discipline": "COM",
       "team": "I",
       "baseLocation": "WEWORK",
-      "baseSeat": "43",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": false,
       "isFloating": false,
@@ -1435,19 +1499,20 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
     {
       "id": "artunduaga-angelica",
       "item": 66,
-      "name": "Artunduaga, Angélica",
+      "name": "Artunduaga, Ang�lica",
       "role": "Engineer",
       "email": "",
       "discipline": "ELE",
       "team": "E",
       "baseLocation": "WEWORK",
-      "baseSeat": "28",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": false,
       "isFloating": false,
@@ -1457,6 +1522,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -1469,7 +1535,7 @@
       "discipline": "ELE",
       "team": "E",
       "baseLocation": "WEWORK",
-      "baseSeat": "22",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": false,
       "isFloating": false,
@@ -1479,19 +1545,20 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
     {
       "id": "castaneda-kevin",
       "item": 68,
-      "name": "Castañeda, Kevin",
+      "name": "Casta�eda, Kevin",
       "role": "BIM Technician",
       "email": "",
       "discipline": "HVAC",
       "team": "H",
       "baseLocation": "WEWORK",
-      "baseSeat": "8",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": false,
       "isFloating": false,
@@ -1501,6 +1568,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -1513,7 +1581,7 @@
       "discipline": "ELE",
       "team": "E",
       "baseLocation": "WEWORK",
-      "baseSeat": "150",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": false,
       "isFloating": false,
@@ -1523,6 +1591,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -1535,7 +1604,7 @@
       "discipline": "HVAC",
       "team": "H",
       "baseLocation": "WEWORK",
-      "baseSeat": "4",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": false,
       "isFloating": false,
@@ -1545,6 +1614,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     },
@@ -1557,7 +1627,7 @@
       "discipline": "HVAC",
       "team": "H",
       "baseLocation": "WEWORK",
-      "baseSeat": "1",
+      "baseSeat": "",
       "isActive": true,
       "hybridApproved": false,
       "isFloating": false,
@@ -1567,6 +1637,7 @@
       "parkingEligible": false,
       "restrictionType": "NONE",
       "restrictionEnabled": true,
+      "homeOnAllAllowedDays": false,
       "special": false,
       "notes": ""
     }
@@ -1574,15 +1645,15 @@
   "holidays": [
     {
       "date": "2026-01-01",
-      "name": "Año Nuevo"
+      "name": "A�o Nuevo"
     },
     {
       "date": "2026-01-12",
-      "name": "Día de los Reyes Magos"
+      "name": "D�a de los Reyes Magos"
     },
     {
       "date": "2026-03-23",
-      "name": "Día de San José"
+      "name": "D�a de San Jos�"
     },
     {
       "date": "2026-04-02",
@@ -1594,11 +1665,11 @@
     },
     {
       "date": "2026-05-01",
-      "name": "Día del Trabajo"
+      "name": "D�a del Trabajo"
     },
     {
       "date": "2026-05-18",
-      "name": "Día de la Ascensión"
+      "name": "D�a de la Ascensi�n"
     },
     {
       "date": "2026-06-08",
@@ -1606,7 +1677,7 @@
     },
     {
       "date": "2026-06-15",
-      "name": "Sagrado Corazón"
+      "name": "Sagrado Coraz�n"
     },
     {
       "date": "2026-06-29",
@@ -1614,23 +1685,23 @@
     },
     {
       "date": "2026-07-20",
-      "name": "Día de la Independencia"
+      "name": "D�a de la Independencia"
     },
     {
       "date": "2026-08-07",
-      "name": "Batalla de Boyacá"
+      "name": "Batalla de Boyac�"
     },
     {
       "date": "2026-08-17",
-      "name": "Asunción de la Virgen"
+      "name": "Asunci�n de la Virgen"
     },
     {
       "date": "2026-10-12",
-      "name": "Día de la Raza"
+      "name": "D�a de la Raza"
     },
     {
       "date": "2026-11-02",
-      "name": "Día de Todos los Santos"
+      "name": "D�a de Todos los Santos"
     },
     {
       "date": "2026-11-16",
@@ -1638,55 +1709,22 @@
     },
     {
       "date": "2026-12-08",
-      "name": "Día de la Inmaculada Concepción"
+      "name": "D�a de la Inmaculada Concepci�n"
     },
     {
       "date": "2026-12-25",
       "name": "Navidad"
     }
   ],
-  "absences": [
-    {
-      "employeeId": "gallo-ana-maria",
-      "startDate": "2026-05-29",
-      "endDate": "2026-06-26",
-      "type": "VACATION",
-      "notes": ""
-    },
-    {
-      "employeeId": "gonzalez-julian",
-      "startDate": "2026-06-04",
-      "endDate": "2026-06-15",
-      "type": "VACATION",
-      "notes": ""
-    },
-    {
-      "employeeId": "lancheros-rafael",
-      "startDate": "2026-06-09",
-      "endDate": "2026-06-23",
-      "type": "VACATION",
-      "notes": ""
-    },
-    {
-      "employeeId": "desalvador-diego",
-      "startDate": "2026-06-19",
-      "endDate": "2026-07-03",
-      "type": "VACATION",
-      "notes": ""
-    }
-  ],
+  "absences": [],
   "manualOverrides": [],
   "params": {
     "seatsWeWork": 36,
     "seats93": 11,
-    "lockers": 36,
     "parkingSpots": 3
   },
   "month": 5,
   "year": 2026,
   "manualParking": [],
-  "manualOffice93ByPeriod": {},
-  "manualLockersByPeriod": {},
-  "manualDeskAssignmentsByPeriod": {},
-  "savedWeeksByPeriod": {}
+  "manualOffice93ByPeriod": {}
 }
