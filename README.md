@@ -9,24 +9,8 @@ asignación de puestos a personal flotante.
 Los datos viven en memoria (estados de React). Puedes **exportar/importar JSON**
 para conservar una configuración entre sesiones, y exportar CSV de programación,
 resumen diario y alertas.
-Si necesitas que otra persona vea exactamente la misma configuración sin usar tu
-navegador, usa **Copiar link compartible** desde Exportar/Importar: la app carga
-ese snapshot directamente desde la URL.
 
-En desarrollo (`npm run dev`), la app queda editable y los cambios se guardan en
-`localStorage` del navegador. En el build público, la app abre en modo lectura.
-Si necesitas congelar junio de 2026 con el preset publicado, activa
-`VITE_PUBLIC_PUBLISHED_JUNE=true`; por defecto la vista pública usa el mismo
-estado calculado que ve admin en ese navegador.
-La URL base pública carga el snapshot publicado en
-`src/data/publishedSnapshot.json`; si quieres cambiar lo que ve todo el mundo en
-esa URL, actualiza ese snapshot y vuelve a desplegar.
-Si quieres que visitantes y admin compartan cambios automaticamente sin tocar
-el repo a mano, el panel Exportar/Importar permite cargar un token de GitHub en
-la sesion del admin. Desde ese momento, cada cambio editable se publica solo a
-`src/data/publishedSnapshot.json` y la vista publica lo refresca periodicamente.
-
-El sidebar incluye un acceso
+En el build público, la app abre en modo lectura. El sidebar incluye un acceso
 admin para desbloquear el resto de pestañas con las credenciales definidas en
 `VITE_ADMIN_USERNAME` y `VITE_ADMIN_PASSWORD`.
 
@@ -40,24 +24,6 @@ npm run preview  # sirve el build
 ```
 
 Requisitos: Node 18+.
-
-## Publicar lo que muestra la URL base
-
-1. Exporta tu configuración actual desde la app como JSON.
-2. Ejecuta `npm run publish:snapshot -- ruta/al/archivo.json`.
-3. Revisa el cambio en `src/data/publishedSnapshot.json`.
-4. Haz commit y deploy para que la URL base muestre esa versión a todos.
-
-## Sincronizacion automatica admin -> visitantes
-
-1. Inicia sesion como admin.
-2. Ve a Exportar / Importar.
-3. Pega un token fine-grained de GitHub con permiso `Contents: Read and write`
-   sobre el repo `luisedualvarado/hibrido-app`.
-4. Guarda el token en esa sesion del navegador.
-
-Con eso, los cambios del admin se publican automaticamente en GitHub y la vista
-publica consulta esa version compartida cada pocos segundos.
 
 ## Acceso admin
 

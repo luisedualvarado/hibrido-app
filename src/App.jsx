@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'
+import React, { useState, useMemo, useCallback, useEffect } from 'react'
 import { Sidebar } from './components/Shared.jsx'
 import Dashboard from './components/Dashboard.jsx'
 import MonthlySchedule from './components/MonthlySchedule.jsx'
@@ -10,7 +10,6 @@ import { Absences, Holidays, Parking, Office93Rotation, Lockers, ManualOverrides
 
 import { initialEmployees } from './data/initialEmployees.js'
 import { initialHolidays, initialAbsences, defaultParameters } from './data/initialHolidays.js'
-import publishedSnapshot from './data/publishedSnapshot.json'
 
 import { enforceNoOfficeOvercapacity, generateMonthlySchedule } from './logic/scheduleGenerator.js'
 import { assignParkingForMonth, parkingUsageByDay, assignFloatingSeats, applyManualOverrides } from './logic/parkingGenerator.js'
@@ -18,17 +17,6 @@ import { assignOffice93ForMonth, applyOffice93Assignment } from './logic/locatio
 import { assignLockersForMonth } from './logic/lockerGenerator.js'
 import { buildDailySummary, validateSchedule, buildDashboardKPIs } from './logic/validators.js'
 import { MONTH_LABEL, isHoliday, isOddCalendarDay, isWeekend } from './logic/dateUtils.js'
-import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from 'lz-string'
-import {
-  GITHUB_SYNC_ENABLED,
-  GITHUB_SYNC_POLL_INTERVAL_MS,
-  GITHUB_SYNC_REPO_LABEL,
-  clearGitHubSyncToken as clearStoredGitHubSyncToken,
-  fetchPublishedSnapshot,
-  loadGitHubSyncToken,
-  publishPublishedSnapshot,
-  saveGitHubSyncToken as storeGitHubSyncToken,
-} from './logic/githubSync.js'
 
 const TITLES = {
   dashboard: 'Dashboard',
@@ -52,7 +40,6 @@ const EMPTY_ARRAY = []
 const MIN_YEAR = 2026
 const MIN_MONTH = 5
 const PUBLIC_READ_ONLY = import.meta.env.VITE_PUBLIC_READ_ONLY === 'true'
-const PUBLIC_PUBLISHED_JUNE_LOCK = import.meta.env.VITE_PUBLIC_PUBLISHED_JUNE === 'true'
 const PUBLIC_VIEWS = ['dashboard', 'monthly', 'daily', 'desks', 'lockers']
 const PUBLIC_JUNE_OFFICE93_IDS = [
   'hilario-martin',
@@ -146,7 +133,6 @@ const PUBLIC_JUNE_IVONNE_ABSENCE_DATES = new Set([
 const STORAGE_KEY = 'hibrido-app-state-v2'
 const BACKUP_KEY = 'hibrido-app-state-v2-backup'
 const BACKUP_HISTORY_KEY = 'hibrido-app-state-v2-backups'
-const SHARE_SNAPSHOT_PARAM = 'snapshot'
 const ADMIN_SESSION_KEY = 'hibrido-app-admin-session'
 const ADMIN_USERNAME = import.meta.env.VITE_ADMIN_USERNAME || 'admin'
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'admin123'
@@ -230,54 +216,16 @@ function latestBackup() {
 function loadStoredState() {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY)
-    return hydrateSnapshotState(parseJSON(raw) || {})
+    const parsed = parseJSON(raw) || {}
+    if (!Array.isArray(parsed.employees)) return parsed
+
+    return {
+      ...parsed,
+      employees: mergeEmployeeSeatDefaults(parsed.employees),
+    }
   } catch (error) {
     return {}
   }
-}
-
-function hydrateSnapshotState(parsed) {
-  if (!Array.isArray(parsed.employees)) return parsed
-
-  return {
-    ...parsed,
-    employees: mergeEmployeeSeatDefaults(parsed.employees),
-  }
-}
-
-function loadPublishedState() {
-  return hydrateSnapshotState(publishedSnapshot || {})
-}
-
-function loadSharedSnapshot() {
-  try {
-    const url = new URL(window.location.href)
-    const compressed = url.searchParams.get(SHARE_SNAPSHOT_PARAM)
-    if (!compressed) return null
-
-    const decompressed = decompressFromEncodedURIComponent(compressed)
-    return hydrateSnapshotState(parseJSON(decompressed) || {})
-  } catch (error) {
-    return null
-  }
-}
-
-function loadInitialState() {
-  const sharedSnapshot = loadSharedSnapshot()
-  if (sharedSnapshot) return sharedSnapshot
-
-  if (PUBLIC_READ_ONLY) {
-    const publishedState = loadPublishedState()
-    if (Array.isArray(publishedState.employees)) return publishedState
-  }
-
-  return loadStoredState()
-}
-
-function buildShareUrl(snapshot) {
-  const url = new URL(window.location.href)
-  url.searchParams.set(SHARE_SNAPSHOT_PARAM, compressToEncodedURIComponent(JSON.stringify(snapshot)))
-  return url.toString()
 }
 
 function loadAdminSession() {
@@ -285,115 +233,6 @@ function loadAdminSession() {
     return window.sessionStorage.getItem(ADMIN_SESSION_KEY) === 'true'
   } catch (error) {
     return false
-  }
-}
-
-function buildComputedState({
-  employees,
-  holidays,
-  absences,
-  manualOverrides,
-  month,
-  year,
-  params,
-  manualParking,
-  manualOffice93,
-  hasManualOffice93,
-  manualDeskAssignments,
-  manualLockers,
-  readOnly,
-}) {
-  const isPublishedJune = PUBLIC_PUBLISHED_JUNE_LOCK && readOnly && year === MIN_YEAR && month === MIN_MONTH
-  const publicJuneOffice93 = isPublishedJune
-    ? PUBLIC_JUNE_OFFICE93_IDS
-    : null
-  const effectiveParams = isPublishedJune
-    ? { ...params, ...PUBLIC_JUNE_PARAMS_OVERRIDE }
-    : params
-  const office93AssignedAuto = assignOffice93ForMonth({ employees, params, monthIndex: month, manualOffice93 })
-  const office93Assigned = publicJuneOffice93 || (hasManualOffice93 ? Array.from(new Set(manualOffice93)) : office93AssignedAuto)
-  const effectiveEmployees = applyOffice93Assignment(employees, office93Assigned)
-  const effectiveManualOverrides = filterScheduleOverrides(manualOverrides)
-
-  const base = generateMonthlySchedule({
-    employees: effectiveEmployees,
-    holidays,
-    absences,
-    manualOverrides: effectiveManualOverrides,
-    month,
-    year,
-    params: effectiveParams,
-    generationSeed: `${year}-${month}`,
-  })
-  const schedule = enforceNoOfficeOvercapacity(
-    applyManualOverrides(base, effectiveManualOverrides, effectiveEmployees, effectiveParams),
-    effectiveEmployees,
-    holidays,
-    effectiveParams,
-    `${year}-${month}-final`
-  )
-
-  const publicJuneAdjusted = isPublishedJune
-    ? applyPublicJuneOffice93Adjustments(schedule, effectiveEmployees, holidays)
-    : { schedule, employees: effectiveEmployees }
-  const effectiveSchedule = publicJuneAdjusted.schedule
-  const effectiveEmployeesView = publicJuneAdjusted.employees
-
-  const parkingAssignedAuto = assignParkingForMonth({
-    employees: effectiveEmployeesView,
-    params: effectiveParams,
-    monthIndex: month,
-    manualParking,
-  })
-  const parkingAssigned = (manualParking.length ? manualParking : parkingAssignedAuto).slice(0, effectiveParams.parkingSpots)
-
-  const parkingUsage = parkingUsageByDay(effectiveSchedule, parkingAssigned, effectiveEmployeesView, effectiveSchedule.days)
-  const { result: floatingResult, alerts: floatAlerts } = assignFloatingSeats(
-    effectiveSchedule,
-    effectiveEmployeesView,
-    effectiveSchedule.days,
-    effectiveParams,
-    manualDeskAssignments
-  )
-  const effectiveManualLockers = isPublishedJune && readOnly
-    ? PUBLIC_JUNE_LOCKER_ASSIGNMENTS
-    : manualLockers
-  const lockerResult = assignLockersForMonth({
-    employees: effectiveEmployeesView,
-    lockerCount: effectiveParams.lockers,
-    manualAssignments: effectiveManualLockers,
-  })
-
-  const { summary, alerts: dailyAlerts } = buildDailySummary(
-    effectiveSchedule,
-    effectiveEmployeesView,
-    effectiveSchedule.days,
-    effectiveParams,
-    parkingUsage,
-    floatingResult,
-    holidays
-  )
-  const validationAlerts = validateSchedule(effectiveSchedule, effectiveEmployeesView, year, month, holidays)
-
-  const allAlerts = [...effectiveSchedule.alerts, ...floatAlerts, ...dailyAlerts, ...validationAlerts]
-    .sort((a, b) => {
-      const order = { CRITICAL: 0, WARNING: 1, INFO: 2 }
-      return order[a.severity] - order[b.severity]
-    })
-  const kpis = buildDashboardKPIs(effectiveEmployeesView, summary, effectiveParams, parkingAssigned, allAlerts)
-
-  return {
-    schedule: effectiveSchedule,
-    effectiveEmployees: effectiveEmployeesView,
-    office93Assigned,
-    parkingAssigned,
-    parkingUsage,
-    floatingResult,
-    lockerResult,
-    summary,
-    allAlerts,
-    kpis,
-    effectiveParams,
   }
 }
 
@@ -461,17 +300,11 @@ function applyPublicJuneOffice93Adjustments(schedule, employees, holidays) {
 
 export default function App() {
   const now = new Date()
-  const stored = useMemo(() => loadInitialState(), [])
+  const stored = useMemo(() => loadStoredState(), [])
   const [isAdmin, setIsAdmin] = useState(() => loadAdminSession())
   const [authError, setAuthError] = useState('')
   const isReadOnly = PUBLIC_READ_ONLY && !isAdmin
-  const [githubToken, setGithubToken] = useState(() => loadGitHubSyncToken())
-  const [githubSyncStatus, setGithubSyncStatus] = useState(() => (loadGitHubSyncToken() ? 'connecting' : 'idle'))
-  const [githubSyncError, setGithubSyncError] = useState('')
-  const [githubSyncReady, setGithubSyncReady] = useState(false)
-  const publishedShaRef = useRef(null)
-  const lastPublishedJsonRef = useRef(JSON.stringify(loadPublishedState()))
-  const editableStored = stored
+  const editableStored = isReadOnly ? {} : stored
   const initialPeriod = useMemo(() => normalizePeriod(
     typeof editableStored.year === 'number' ? editableStored.year : now.getFullYear(),
     typeof editableStored.month === 'number' ? editableStored.month : now.getMonth()
@@ -490,6 +323,7 @@ export default function App() {
   const [manualLockersByPeriod, setManualLockersByPeriod] = useState(editableStored.manualLockersByPeriod || {})
   const [manualDeskAssignmentsByPeriod, setManualDeskAssignmentsByPeriod] = useState(editableStored.manualDeskAssignmentsByPeriod || {})
   const [savedWeeksByPeriod, setSavedWeeksByPeriod] = useState(editableStored.savedWeeksByPeriod || {})
+  const [didHydrateStoredState, setDidHydrateStoredState] = useState(false)
   const [generationTick, setGenerationTick] = useState(0)
   const periodKey = periodKeyFor(year, month)
   const hasManualOffice93 = Object.prototype.hasOwnProperty.call(manualOffice93ByPeriod, periodKey)
@@ -521,6 +355,13 @@ export default function App() {
     setAuthError('')
     setView('dashboard')
   }, [])
+
+  useEffect(() => {
+    if (isReadOnly && (year !== MIN_YEAR || month !== MIN_MONTH)) {
+      setYear(MIN_YEAR)
+      setMonth(MIN_MONTH)
+    }
+  }, [isReadOnly, month, year])
 
   useEffect(() => {
     if (!PUBLIC_READ_ONLY) return
@@ -573,26 +414,100 @@ export default function App() {
     setMonth(next.month)
   }
 
-  const computed = useMemo(() => buildComputedState({
-    employees,
-    holidays,
-    absences,
-    manualOverrides,
-    month,
-    year,
-    params,
-    manualParking,
-    manualOffice93,
-    hasManualOffice93,
-    manualDeskAssignments,
-    manualLockers,
-    readOnly: isReadOnly,
-  }), [employees, holidays, absences, manualOverrides, month, year, params, manualParking, manualOffice93, hasManualOffice93, generationTick, isReadOnly, manualDeskAssignments, manualLockers])
+  const computed = useMemo(() => {
+    const isPublishedJune = PUBLIC_READ_ONLY && year === MIN_YEAR && month === MIN_MONTH
+    const publicJuneOffice93 = isPublishedJune
+      ? PUBLIC_JUNE_OFFICE93_IDS
+      : null
+    const effectiveParams = isPublishedJune
+      ? { ...params, ...PUBLIC_JUNE_PARAMS_OVERRIDE }
+      : params
+    const office93AssignedAuto = assignOffice93ForMonth({ employees, params, monthIndex: month, manualOffice93 })
+    const office93Assigned = publicJuneOffice93 || (hasManualOffice93 ? Array.from(new Set(manualOffice93)) : office93AssignedAuto)
+    const effectiveEmployees = applyOffice93Assignment(employees, office93Assigned)
+    const effectiveManualOverrides = filterScheduleOverrides(manualOverrides)
 
-  const activeComputed = computed
-  const activeMonth = month
-  const activeYear = year
-  const activeReadOnly = isReadOnly
+    const base = generateMonthlySchedule({
+      employees: effectiveEmployees,
+      holidays,
+      absences,
+      manualOverrides: effectiveManualOverrides,
+      month,
+      year,
+      params: effectiveParams,
+      generationSeed: `${year}-${month}`,
+    })
+    const schedule = enforceNoOfficeOvercapacity(
+      applyManualOverrides(base, effectiveManualOverrides, effectiveEmployees, effectiveParams),
+      effectiveEmployees,
+      holidays,
+      effectiveParams,
+      `${year}-${month}-final`
+    )
+
+    const publicJuneAdjusted = isPublishedJune
+      ? applyPublicJuneOffice93Adjustments(schedule, effectiveEmployees, holidays)
+      : { schedule, employees: effectiveEmployees }
+    const effectiveSchedule = publicJuneAdjusted.schedule
+    const effectiveEmployeesView = publicJuneAdjusted.employees
+
+    const parkingAssignedAuto = assignParkingForMonth({
+      employees: effectiveEmployeesView,
+      params: effectiveParams,
+      monthIndex: month,
+      manualParking,
+    })
+    const parkingAssigned = (manualParking.length ? manualParking : parkingAssignedAuto).slice(0, effectiveParams.parkingSpots)
+
+    const parkingUsage = parkingUsageByDay(effectiveSchedule, parkingAssigned, effectiveEmployeesView, effectiveSchedule.days)
+    const { result: floatingResult, alerts: floatAlerts } = assignFloatingSeats(
+      effectiveSchedule,
+      effectiveEmployeesView,
+      effectiveSchedule.days,
+      effectiveParams,
+      manualDeskAssignments
+    )
+    const effectiveManualLockers = isPublishedJune && isReadOnly
+      ? PUBLIC_JUNE_LOCKER_ASSIGNMENTS
+      : manualLockers
+    const lockerResult = assignLockersForMonth({
+      employees: effectiveEmployeesView,
+      lockerCount: effectiveParams.lockers,
+      manualAssignments: effectiveManualLockers,
+    })
+
+    const { summary, alerts: dailyAlerts } = buildDailySummary(
+      effectiveSchedule,
+      effectiveEmployeesView,
+      effectiveSchedule.days,
+      effectiveParams,
+      parkingUsage,
+      floatingResult,
+      holidays
+    )
+    const validationAlerts = validateSchedule(effectiveSchedule, effectiveEmployeesView, year, month, holidays)
+
+    const allAlerts = [...effectiveSchedule.alerts, ...floatAlerts, ...dailyAlerts, ...validationAlerts]
+      .sort((a, b) => {
+        const order = { CRITICAL: 0, WARNING: 1, INFO: 2 }
+        return order[a.severity] - order[b.severity]
+      })
+    const kpis = buildDashboardKPIs(effectiveEmployeesView, summary, effectiveParams, parkingAssigned, allAlerts)
+
+    return {
+      schedule: effectiveSchedule,
+      effectiveEmployees: effectiveEmployeesView,
+      office93Assigned,
+      parkingAssigned,
+      parkingUsage,
+      floatingResult,
+      lockerResult,
+      summary,
+      allAlerts,
+      kpis,
+      effectiveParams,
+    }
+  }, [employees, holidays, absences, manualOverrides, month, year, params, manualParking, manualOffice93, hasManualOffice93, generationTick, isReadOnly, manualDeskAssignments, manualLockers])
 
   const saveOverride = useCallback((employeeId, date, status, reason) => {
     setManualOverrides((prev) => {
@@ -677,8 +592,8 @@ export default function App() {
     setGenerationTick((tick) => tick + 1)
   }
 
-  const currentSnapshot = useMemo(() => ({
-    version: 2,
+  const buildSnapshot = () => ({
+    version: 1,
     employees,
     holidays,
     absences,
@@ -691,22 +606,9 @@ export default function App() {
     manualLockersByPeriod,
     manualDeskAssignmentsByPeriod,
     savedWeeksByPeriod,
-  }), [employees, holidays, absences, manualOverrides, params, month, year, manualParking, manualOffice93ByPeriod, manualLockersByPeriod, manualDeskAssignmentsByPeriod, savedWeeksByPeriod])
-  const currentSnapshotJson = useMemo(() => JSON.stringify(currentSnapshot), [currentSnapshot])
-  const buildSnapshot = useCallback(() => currentSnapshot, [currentSnapshot])
+  })
 
-  const copyShareLink = useCallback(async () => {
-    const shareUrl = buildShareUrl(currentSnapshot)
-    try {
-      await window.navigator.clipboard.writeText(shareUrl)
-      window.alert('Link compartible copiado. Quien abra ese link vera esta misma configuracion.')
-    } catch (error) {
-      window.prompt('Copia y comparte este link:', shareUrl)
-    }
-  }, [currentSnapshot])
-
-  const importSnapshot = useCallback((snap, options = {}) => {
-    const { resetView = true } = options
+  const importSnapshot = (snap) => {
     if (snap.employees) setEmployees(mergeEmployeeSeatDefaults(snap.employees))
     if (snap.holidays) setHolidays(snap.holidays)
     if (snap.absences) setAbsences(snap.absences)
@@ -727,25 +629,8 @@ export default function App() {
       const importedKey = periodKeyFor(nextPeriod.year, nextPeriod.month)
       setManualOffice93ByPeriod({ [importedKey]: snap.manualOffice93 })
     }
-    if (resetView) setView('dashboard')
-  }, [month, year])
-
-  const saveGithubToken = useCallback((token) => {
-    const normalized = token.trim()
-    storeGitHubSyncToken(normalized)
-    setGithubToken(normalized)
-    setGithubSyncError('')
-    setGithubSyncStatus(normalized ? 'connecting' : 'idle')
-  }, [])
-
-  const clearGithubToken = useCallback(() => {
-    clearStoredGitHubSyncToken()
-    setGithubToken('')
-    setGithubSyncReady(false)
-    setGithubSyncError('')
-    setGithubSyncStatus('idle')
-    publishedShaRef.current = null
-  }, [])
+    setView('dashboard')
+  }
 
   const restoreBackup = () => {
     const backup = latestBackup()
@@ -758,129 +643,41 @@ export default function App() {
   }
 
   useEffect(() => {
+    if (!PUBLIC_READ_ONLY || !isAdmin || didHydrateStoredState) return
+    if (!stored.employees?.length) {
+      setDidHydrateStoredState(true)
+      return
+    }
+    importSnapshot(stored)
+    setDidHydrateStoredState(true)
+  }, [didHydrateStoredState, isAdmin, stored])
+
+  useEffect(() => {
     if (isReadOnly) return
+    const state = {
+      version: 2,
+      employees,
+      holidays,
+      absences,
+      manualOverrides,
+      params,
+      month,
+      year,
+      manualParking,
+      manualOffice93ByPeriod,
+      manualLockersByPeriod,
+      manualDeskAssignmentsByPeriod,
+      savedWeeksByPeriod,
+    }
     const previous = window.localStorage.getItem(STORAGE_KEY)
-    const next = currentSnapshotJson
+    const next = JSON.stringify(state)
     if (previous && previous !== next) rememberBackup(previous)
     window.localStorage.setItem(STORAGE_KEY, next)
-  }, [currentSnapshotJson, isReadOnly])
-
-  useEffect(() => {
-    if (!GITHUB_SYNC_ENABLED) return undefined
-
-    let cancelled = false
-    let intervalId = null
-
-    const refreshPublishedSnapshot = async () => {
-      try {
-        const remote = await fetchPublishedSnapshot()
-        if (cancelled || !remote?.snapshot) return
-        lastPublishedJsonRef.current = remote.json
-
-        if (!isReadOnly || remote.json === currentSnapshotJson) return
-        importSnapshot(remote.snapshot, { resetView: false })
-      } catch (error) {
-        if (!isReadOnly) return
-        setGithubSyncError(error.message || 'No se pudo actualizar la vista publica.')
-      }
-    }
-
-    refreshPublishedSnapshot()
-
-    if (!isReadOnly) {
-      return () => {
-        cancelled = true
-      }
-    }
-
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') refreshPublishedSnapshot()
-    }
-
-    intervalId = window.setInterval(refreshPublishedSnapshot, GITHUB_SYNC_POLL_INTERVAL_MS)
-    window.addEventListener('visibilitychange', handleVisibility)
-
-    return () => {
-      cancelled = true
-      if (intervalId) window.clearInterval(intervalId)
-      window.removeEventListener('visibilitychange', handleVisibility)
-    }
-  }, [currentSnapshotJson, importSnapshot, isReadOnly])
-
-  useEffect(() => {
-    if (!GITHUB_SYNC_ENABLED || !isAdmin || !githubToken) {
-      setGithubSyncReady(false)
-      if (!githubToken) setGithubSyncStatus('idle')
-      return undefined
-    }
-
-    let cancelled = false
-
-    setGithubSyncStatus('connecting')
-    fetchPublishedSnapshot({ includeSha: true, token: githubToken })
-      .then((remote) => {
-        if (cancelled || !remote) return
-        publishedShaRef.current = remote.sha
-        lastPublishedJsonRef.current = remote.json
-        setGithubSyncReady(true)
-        setGithubSyncStatus('ready')
-        setGithubSyncError('')
-      })
-      .catch((error) => {
-        if (cancelled) return
-        setGithubSyncReady(false)
-        setGithubSyncStatus('error')
-        setGithubSyncError(error.message || 'No se pudo conectar la sincronizacion publica.')
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [githubToken, isAdmin])
-
-  useEffect(() => {
-    if (!GITHUB_SYNC_ENABLED || !isAdmin || !githubToken || !githubSyncReady) return undefined
-    if (currentSnapshotJson === lastPublishedJsonRef.current) return undefined
-
-    setGithubSyncStatus('publishing')
-    setGithubSyncError('')
-
-    const timerId = window.setTimeout(() => {
-      publishPublishedSnapshot(currentSnapshot, githubToken, publishedShaRef.current)
-        .then((result) => {
-          publishedShaRef.current = result?.sha || publishedShaRef.current
-          lastPublishedJsonRef.current = currentSnapshotJson
-          setGithubSyncStatus('synced')
-        })
-        .catch((error) => {
-          setGithubSyncStatus('error')
-          setGithubSyncError(error.message || 'No se pudo publicar la vista publica.')
-        })
-    }, 1500)
-
-    return () => {
-      window.clearTimeout(timerId)
-    }
-  }, [currentSnapshot, currentSnapshotJson, githubSyncReady, githubToken, isAdmin])
+  }, [employees, holidays, absences, manualOverrides, params, month, year, manualParking, manualOffice93ByPeriod, manualLockersByPeriod, manualDeskAssignmentsByPeriod, savedWeeksByPeriod, isReadOnly])
 
   useEffect(() => {
     if (isReadOnly && !PUBLIC_VIEWS.includes(view)) setView('dashboard')
   }, [isReadOnly, view])
-
-  const syncIndicator = useMemo(() => {
-    if (!GITHUB_SYNC_ENABLED || !isAdmin) return null
-
-    const byStatus = {
-      idle: { tone: 'gray', label: 'Sin sync', detail: 'Carga un token en Exportar / Importar.' },
-      connecting: { tone: 'navy', label: 'Conectando', detail: 'Validando acceso al repo compartido.' },
-      ready: { tone: 'navy', label: 'Listo', detail: 'Esperando el siguiente cambio para publicar.' },
-      publishing: { tone: 'amber', label: 'Publicando', detail: 'Actualizando la vista de visitantes.' },
-      synced: { tone: 'green', label: 'Sincronizado', detail: 'La vista publica ya refleja tus cambios.' },
-      error: { tone: 'red', label: 'Error sync', detail: githubSyncError || 'Revisa el token o el acceso al repo.' },
-    }
-
-    return byStatus[githubSyncStatus] || byStatus.idle
-  }, [githubSyncError, githubSyncStatus, isAdmin])
 
   return (
     <div className="app">
@@ -898,17 +695,11 @@ export default function App() {
           <div>
             <h2>{TITLES[view]}</h2>
             <div className="meta">
-              {MONTH_LABEL[activeMonth]} {activeYear} · {activeComputed.kpis.approvedCount} en rotacion · {activeComputed.office93Assigned.length} en Oficina 93 · {activeComputed.kpis.criticalAlerts} alertas criticas
+              {MONTH_LABEL[month]} {year} · {computed.kpis.approvedCount} en rotacion · {computed.office93Assigned.length} en Oficina 93 · {computed.kpis.criticalAlerts} alertas criticas
             </div>
           </div>
           <div className="topbar-actions">
-            {syncIndicator && (
-              <div className="topbar-sync" title={syncIndicator.detail}>
-                <span className={`badge ${syncIndicator.tone}`}>{syncIndicator.label}</span>
-                <span className="topbar-sync-copy">{syncIndicator.detail}</span>
-              </div>
-            )}
-            {showPeriodControls && !activeReadOnly && (
+            {showPeriodControls && !isReadOnly && (
               <div className="topbar-period">
                 <div className="topbar-field">
                   <label>Mes</label>
@@ -926,58 +717,58 @@ export default function App() {
                 </div>
               </div>
             )}
-            {!activeReadOnly && <button className="btn btn-ghost" onClick={clearOverrides}>Limpiar ajustes</button>}
-            {!activeReadOnly && <button className="btn btn-green" onClick={regenerate}>Generar programacion</button>}
+            {!isReadOnly && <button className="btn btn-ghost" onClick={clearOverrides}>Limpiar ajustes</button>}
+            {!isReadOnly && <button className="btn btn-green" onClick={regenerate}>Generar programacion</button>}
           </div>
         </header>
         <main className="content">
           {view === 'dashboard' && (
             <Dashboard
-              kpis={activeComputed.kpis}
-              summary={activeComputed.summary}
-              alerts={activeComputed.allAlerts}
-              month={activeMonth}
-              year={activeYear}
-              params={activeComputed.effectiveParams}
-              employees={activeComputed.effectiveEmployees}
-              schedule={activeComputed.schedule}
-              parkingAssigned={activeComputed.parkingAssigned}
-              hideAlerts={activeReadOnly}
+              kpis={computed.kpis}
+              summary={computed.summary}
+              alerts={computed.allAlerts}
+              month={month}
+              year={year}
+              params={computed.effectiveParams}
+              employees={computed.effectiveEmployees}
+              schedule={computed.schedule}
+              parkingAssigned={computed.parkingAssigned}
+              hideAlerts={isReadOnly}
             />
           )}
           {view === 'monthly' && (
             <MonthlySchedule
-              schedule={activeComputed.schedule}
-              employees={activeComputed.effectiveEmployees}
+              schedule={computed.schedule}
+              employees={computed.effectiveEmployees}
               onSaveOverride={saveOverride}
               onDeleteOverride={deleteOverride}
               manualOverrides={manualOverrides}
               onSaveWeek={saveWeek}
               onClearWeek={clearWeek}
               savedWeeks={savedWeeks}
-              readOnly={activeReadOnly}
-              hideAlerts={activeReadOnly}
+              readOnly={isReadOnly}
+              hideAlerts={isReadOnly}
             />
           )}
           {view === 'daily' && (
             <DailyView
-              schedule={activeComputed.schedule}
-              employees={activeComputed.effectiveEmployees}
-              summary={activeComputed.summary}
-              floatingResult={activeComputed.floatingResult}
-              parkingUsage={activeComputed.parkingUsage}
-              params={activeComputed.effectiveParams}
-              hideAlerts={activeReadOnly}
+              schedule={computed.schedule}
+              employees={computed.effectiveEmployees}
+              summary={computed.summary}
+              floatingResult={computed.floatingResult}
+              parkingUsage={computed.parkingUsage}
+              params={computed.effectiveParams}
+              hideAlerts={isReadOnly}
             />
           )}
           {view === 'desks' && (
             <FloatingSeats
-              schedule={activeComputed.schedule}
-              employees={activeComputed.effectiveEmployees}
-              floatingResult={activeComputed.floatingResult}
-              month={activeMonth}
-              year={activeYear}
-              readOnly={activeReadOnly}
+              schedule={computed.schedule}
+              employees={computed.effectiveEmployees}
+              floatingResult={computed.floatingResult}
+              month={month}
+              year={year}
+              readOnly={isReadOnly}
               manualDeskAssignments={manualDeskAssignments}
               setManualDeskAssignments={setManualDeskAssignmentsForPeriod}
             />
@@ -998,14 +789,14 @@ export default function App() {
           )}
           {view === 'lockers' && (
             <Lockers
-              employees={activeComputed.effectiveEmployees}
-              lockerResult={activeComputed.lockerResult}
+              employees={computed.effectiveEmployees}
+              lockerResult={computed.lockerResult}
               manualLockers={manualLockers}
               setManualLockers={setManualLockersForPeriod}
               params={params}
-              month={activeMonth}
-              year={activeYear}
-              readOnly={activeReadOnly}
+              month={month}
+              year={year}
+              readOnly={isReadOnly}
             />
           )}
           {view === 'parking' && (
@@ -1026,14 +817,6 @@ export default function App() {
               employees={computed.effectiveEmployees}
               summary={computed.summary}
               alerts={computed.allAlerts}
-              githubSyncEnabled={GITHUB_SYNC_ENABLED}
-              githubSyncRepoLabel={GITHUB_SYNC_REPO_LABEL}
-              hasGithubToken={Boolean(githubToken)}
-              githubSyncStatus={githubSyncStatus}
-              githubSyncError={githubSyncError}
-              onSaveGithubToken={saveGithubToken}
-              onClearGithubToken={clearGithubToken}
-              onCopyShareLink={copyShareLink}
               onImport={importSnapshot}
               onRestoreBackup={restoreBackup}
             />
