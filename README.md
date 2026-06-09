@@ -12,6 +12,9 @@ resumen diario y alertas.
 
 En desarrollo (`npm run dev`), la app queda editable y los cambios se guardan en
 `localStorage` del navegador. En el build público, la app abre en modo lectura.
+Si necesitas congelar junio de 2026 con el preset publicado, activa
+`VITE_PUBLIC_PUBLISHED_JUNE=true`; por defecto la vista pública usa el mismo
+estado calculado que ve admin en ese navegador.
 
 El sidebar incluye un acceso
 admin para desbloquear el resto de pestañas con las credenciales definidas en

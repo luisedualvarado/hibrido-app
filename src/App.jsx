@@ -40,6 +40,7 @@ const EMPTY_ARRAY = []
 const MIN_YEAR = 2026
 const MIN_MONTH = 5
 const PUBLIC_READ_ONLY = import.meta.env.VITE_PUBLIC_READ_ONLY === 'true'
+const PUBLIC_PUBLISHED_JUNE_LOCK = import.meta.env.VITE_PUBLIC_PUBLISHED_JUNE === 'true'
 const PUBLIC_VIEWS = ['dashboard', 'monthly', 'daily', 'desks', 'lockers']
 const PUBLIC_JUNE_OFFICE93_IDS = [
   'hilario-martin',
@@ -251,7 +252,7 @@ function buildComputedState({
   manualLockers,
   readOnly,
 }) {
-  const isPublishedJune = PUBLIC_READ_ONLY && year === MIN_YEAR && month === MIN_MONTH
+  const isPublishedJune = PUBLIC_PUBLISHED_JUNE_LOCK && readOnly && year === MIN_YEAR && month === MIN_MONTH
   const publicJuneOffice93 = isPublishedJune
     ? PUBLIC_JUNE_OFFICE93_IDS
     : null
