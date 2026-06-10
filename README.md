@@ -6,12 +6,13 @@ Reemplaza el Excel de rotación con asignación automática de días de trabajo 
 casa, control de puestos en WeWork / Oficina 93, rotación de parqueaderos y
 asignación de puestos a personal flotante.
 
-Los datos del administrador se sincronizan con **Supabase** y se conservan
-tambien en `localStorage` como respaldo local. Puedes **exportar/importar JSON**,
-exportar CSV e imprimir o guardar la vista actual como PDF.
+Los datos viven en memoria (estados de React). Puedes **exportar/importar JSON**
+para conservar una configuración entre sesiones, y exportar CSV de programación,
+resumen diario y alertas.
 
-En el build publico, la app abre en modo lectura. El sidebar incluye acceso para
-un unico administrador autenticado mediante Supabase Auth.
+En el build público, la app abre en modo lectura. El sidebar incluye un acceso
+admin para desbloquear el resto de pestañas con las credenciales definidas en
+`VITE_ADMIN_USERNAME` y `VITE_ADMIN_PASSWORD`.
 
 ## Cómo correrlo
 
@@ -24,25 +25,19 @@ npm run preview  # sirve el build
 
 Requisitos: Node 18+.
 
-## Configurar Supabase
+## Acceso admin
 
-1. Crea un proyecto en Supabase.
-2. Ejecuta [`supabase/schema.sql`](supabase/schema.sql) en SQL Editor.
-3. En Authentication, crea un solo usuario con correo y contrasena.
-4. Copia `.env.example` a `.env.local` y completa:
+Por defecto, tanto en desarrollo como en producción se crean estas
+credenciales:
 
 ```bash
-VITE_ADMIN_EMAIL=admin@empresa.com
-VITE_SUPABASE_URL=https://TU-PROYECTO.supabase.co
-VITE_SUPABASE_ANON_KEY=TU_CLAVE_PUBLICA_ANON
+usuario: admin
+contrasena: ME&I2026
 ```
 
-La clave `anon` es publica por diseno. La seguridad de los datos depende de
-Supabase Auth y las politicas RLS incluidas en el SQL. No uses una `service_role`
-en variables `VITE_*`.
-
-Para GitHub Pages, crea los secrets `VITE_ADMIN_EMAIL`, `VITE_SUPABASE_URL` y
-`VITE_SUPABASE_ANON_KEY` en la configuracion del repositorio.
+Si vas a publicar el sitio, cambia esos valores en `.env.production`. Ten en
+cuenta que esta proteccion es solo del lado del cliente: sirve para ocultar y
+desbloquear la interfaz, no reemplaza autenticacion real con backend.
 
 ## Crear el proyecto desde cero (si lo necesitas)
 
@@ -110,10 +105,11 @@ manuales.
    rotación mensual, se reparten puestos a flotantes y se recalculan resumen y
    alertas.
 
-> La aprobacion del plan hibrido, las restricciones individuales y la cantidad
-> semanal de 1 o 2 dias de TC son reglas obligatorias. Si un sobrecupo no puede
-> resolverse sin romperlas, la aplicacion conserva las reglas y genera una alerta
-> critica.
+> Nota real de capacidad: el equipo activo con híbrido supera el máximo de 9
+> personas/día. El prototipo **no oculta** esa tensión: la refleja en las alertas
+> y KPIs (días con sobrecupo), igual que ocurría en el archivo original cuando
+> "no alcanzaban los puestos". Ajusta `Máx. en casa/día`, marca gente como
+> Oficina 93 o desactiva personas para verlo balancearse.
 
 ## Reglas individuales precargadas (editables en la app)
 
@@ -150,8 +146,8 @@ mencionó en la reunión.
 
 ## Próximas mejoras recomendadas
 
-1. Historial de versiones en tablas separadas para restaurar cambios desde Supabase.
-2. Vista publica alimentada por una copia publicada de solo lectura.
+1. Persistencia real (localStorage o backend) en lugar de solo JSON manual.
+2. Generación de PDF (hoy es un placeholder).
 3. Solver de optimización (p. ej. programación lineal) para repartir el
    sobrecupo de forma óptima cuando el equipo excede 9/día.
 4. Pico y placa de Jaime parametrizable por día de la semana.

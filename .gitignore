@@ -3,5 +3,3 @@ dist/
 *.log
 .tmp-*.mjs
 .DS_Store
-.env.local
-.env.*.local

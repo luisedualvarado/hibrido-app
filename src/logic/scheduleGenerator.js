@@ -10,16 +10,8 @@
 
 import {
   getDaysInMonth, getWorkdaysByWeek, isWeekend, isHoliday, holidayName,
-  weekdayKey, parseISO, rangeDates, WEEKDAY_LABEL,
+  weekdayKey, isOddCalendarDay, parseISO, rangeDates, WEEKDAY_LABEL,
 } from './dateUtils.js'
-import {
-  getAllowedDatesForEmployee,
-  hasHardRestriction,
-  isDateAllowedForEmployee,
-  isRotationEligible,
-  restrictionTypeFor,
-  weeklyHomeTarget,
-} from './rotationPolicy.js'
 
 function seededTieBreaker(seed, ...parts) {
   const text = `${seed}::${parts.join('::')}`
@@ -29,6 +21,59 @@ function seededTieBreaker(seed, ...parts) {
     hash = Math.imul(hash, 16777619)
   }
   return (hash >>> 0) / 4294967295
+}
+
+const SHARED_DESK_PAIR = {
+  first: 'camargo-jessel',
+  second: 'cardenas-jaime',
+}
+
+function isSharedDeskEmployee(employeeId) {
+  return employeeId === SHARED_DESK_PAIR.first || employeeId === SHARED_DESK_PAIR.second
+}
+
+function assignSharedDeskAlternation({ week, weekIndex, cells, homeCountByDay, officeHomeAssignmentsByDay, employeesById }) {
+  const firstId = SHARED_DESK_PAIR.first
+  const secondId = SHARED_DESK_PAIR.second
+  const second = employeesById?.[secondId]
+  const sharedOperationalDays = week.workdays.filter((iso) => {
+    const firstCell = cells[`${firstId}__${iso}`]
+    const secondCell = cells[`${secondId}__${iso}`]
+    const firstOperational = firstCell?.status === 'OFFICE' || firstCell?.status === 'HOME'
+    const secondOperational = secondCell?.status === 'OFFICE' || secondCell?.status === 'HOME'
+    return firstOperational && secondOperational
+  })
+
+  if (sharedOperationalDays.length === 0) return
+
+  // Fuerza el esquema de puesto compartido: primero deja ambos en OFFICE,
+  // luego marca HOME solo para quien corresponde ese dia.
+  sharedOperationalDays.forEach((iso) => {
+    const firstKey = `${firstId}__${iso}`
+    const secondKey = `${secondId}__${iso}`
+    cells[firstKey] = { ...cells[firstKey], status: 'OFFICE', source: 'AUTO', alerts: [] }
+    cells[secondKey] = { ...cells[secondKey], status: 'OFFICE', source: 'AUTO', alerts: [] }
+  })
+
+  const firstGetsExtraDay = weekIndex % 2 === 0
+  const firstTarget = firstGetsExtraDay
+    ? Math.ceil(sharedOperationalDays.length / 2)
+    : Math.floor(sharedOperationalDays.length / 2)
+  const secondTarget = sharedOperationalDays.length - firstTarget
+
+  const secondAllowedDays = second
+    ? sharedOperationalDays.filter((iso) => isDateAllowedForEmployee(second, iso))
+    : []
+  const secondFallbackDays = sharedOperationalDays.filter((iso) => !secondAllowedDays.includes(iso))
+  const secondHomeDays = [...secondAllowedDays, ...secondFallbackDays].slice(0, secondTarget)
+
+  sharedOperationalDays.forEach((iso) => {
+    const goesHomeId = secondHomeDays.includes(iso) ? secondId : firstId
+    const employee = employeesById?.[goesHomeId]
+    const key = `${goesHomeId}__${iso}`
+    cells[key] = { ...cells[key], status: 'HOME', source: 'AUTO', alerts: [] }
+    if (employee) registerHomeAssignment(employee, iso, homeCountByDay, officeHomeAssignmentsByDay)
+  })
 }
 
 function rebuildHomeCountByDay(cells, days, employees) {
@@ -41,6 +86,14 @@ function rebuildHomeCountByDay(cells, days, employees) {
     }
   }
   return counts
+}
+
+function restrictionTypeFor(employee) {
+  return employee.restrictionEnabled === false ? 'NONE' : employee.restrictionType
+}
+
+function hasHardRestriction(employee) {
+  return ['FIXED_DAY', 'EVEN_DAYS', 'ODD_DAYS', 'ALLOWED_DAYS', 'NOT_ALLOWED_DAYS'].includes(restrictionTypeFor(employee))
 }
 
 function officeLocationFor(employee) {
@@ -70,7 +123,33 @@ export function absenceType(employeeId, iso, absences) {
 }
 
 // ---- Días candidatos para un empleado según su restricción individual ----
-export { getAllowedDatesForEmployee } from './rotationPolicy.js'
+export function getAllowedDatesForEmployee(employee, weekWorkdays) {
+  const r = restrictionTypeFor(employee)
+  return weekWorkdays.filter((iso) => {
+    const wd = weekdayKey(iso)
+    switch (r) {
+      case 'FIXED_DAY':
+        return wd === employee.fixedDay
+      case 'EVEN_DAYS':
+        return !isOddCalendarDay(iso)
+      case 'ODD_DAYS':
+        return isOddCalendarDay(iso)
+      case 'ALLOWED_DAYS':
+        return (employee.allowedDays || []).includes(wd)
+      case 'NOT_ALLOWED_DAYS':
+        return !(employee.notAllowedDays || []).includes(wd)
+      case 'PENDING':
+      case 'SPECIAL':
+      case 'NONE':
+      default:
+        return true
+    }
+  })
+}
+
+function isDateAllowedForEmployee(employee, iso) {
+  return getAllowedDatesForEmployee(employee, [iso]).length > 0
+}
 
 // ---- Scoring de una fecha para un empleado -------------------------------
 // Menor puntaje = mejor. Penalizaciones suman, bonificaciones restan.
@@ -191,7 +270,6 @@ function hasAdjacentHomeAfterMove(cells, employeeId, iso, workdays, oldHomeIso =
 }
 
 function canAssignHome(employee, iso, cells, monthWorkdays, oldHomeIso = null) {
-  if (!isRotationEligible(employee)) return false
   if (hasHardRestriction(employee) && !isDateAllowedForEmployee(employee, iso)) return false
   if (employee.avoidConsecutiveHomeDays && hasAdjacentHomeAfterMove(cells, employee.id, iso, monthWorkdays, oldHomeIso)) return false
   return true
@@ -254,7 +332,7 @@ function balanceOfficeCapacity({ employees, cells, days, weeks, holidays, params
       const week = weekForDate(weeks, iso)
       const movablePresent = present.filter((employee) => !isProtectedManualOfficeCell(cells, employee.id, iso))
       const orderedCandidates = [...movablePresent]
-        .filter((employee) => isRotationEligible(employee))
+        .filter((employee) => employee.hybridApproved && !isSharedDeskEmployee(employee.id))
         .sort((a, b) => {
           const aCanRespect = canAssignHome(a, iso, cells, monthWorkdays)
           const bCanRespect = canAssignHome(b, iso, cells, monthWorkdays)
@@ -280,24 +358,45 @@ function balanceOfficeCapacity({ employees, cells, days, weeks, holidays, params
       }
 
       if (!solved) {
-        const extraCandidate = orderedCandidates.find((candidate) =>
-          week &&
-          canAssignHome(candidate, iso, cells, monthWorkdays) &&
-          countHomeDays(cells, candidate.id, week.workdays) < weeklyHomeTarget(candidate)
-        )
+        const emergencyCandidates = [...movablePresent]
+          .filter((employee) => !isSharedDeskEmployee(employee.id))
+          .sort((a, b) => {
+            if (!!a.hybridApproved !== !!b.hybridApproved) return a.hybridApproved ? -1 : 1
+            const aCanRespect = canAssignHome(a, iso, cells, monthWorkdays)
+            const bCanRespect = canAssignHome(b, iso, cells, monthWorkdays)
+            if (aCanRespect !== bCanRespect) return aCanRespect ? -1 : 1
+            return seededTieBreaker(generationSeed, location, iso, a.id) - seededTieBreaker(generationSeed, location, iso, b.id)
+          })
+        const extraCandidate =
+          orderedCandidates.find((candidate) => canAssignHome(candidate, iso, cells, monthWorkdays)) ||
+          orderedCandidates[0] ||
+          emergencyCandidates.find((candidate) => canAssignHome(candidate, iso, cells, monthWorkdays)) ||
+          emergencyCandidates[0]
         if (!extraCandidate) {
           addAlert?.('CRITICAL',
-            `${iso}: el sobrecupo de ${officeName} no puede resolverse sin romper aprobacion, restriccion o dias TC.`,
+            `${iso}: no hay candidato disponible para eliminar el sobrecupo de ${officeName}.`,
             `${location}_CAPACITY_UNRESOLVED`, { date: iso })
           break
         }
+        const brokeRestriction = !canAssignHome(extraCandidate, iso, cells, monthWorkdays)
         setExtraHomeDay(
           extraCandidate,
           iso,
           cells,
           homeCountByDay,
-          `TC asignado dentro del limite para evitar sobrecupo en ${officeName}`
+          `TC adicional para evitar sobrecupo en ${officeName}`,
+          brokeRestriction ? ['Restriccion individual no se pudo cumplir por capacidad'] : []
         )
+        if (brokeRestriction) {
+          addAlert?.('WARNING',
+            `${extraCandidate.name}: se asigno TC adicional el ${iso} para eliminar sobrecupo en ${officeName}.`,
+            'CAPACITY_PRIORITY_OVER_RESTRICTION', { employeeId: extraCandidate.id, date: iso })
+        }
+        if (!extraCandidate.hybridApproved) {
+          addAlert?.('WARNING',
+            `${extraCandidate.name}: se saco de oficina el ${iso} para eliminar sobrecupo en ${officeName}.`,
+            'CAPACITY_PRIORITY_OVER_HYBRID_STATUS', { employeeId: extraCandidate.id, date: iso })
+        }
       }
       present = officeEmployees.filter((employee) => cells[`${employee.id}__${iso}`]?.status === 'OFFICE')
     }
@@ -344,48 +443,6 @@ export function enforceNoOfficeOvercapacity(schedule, employees, holidays, param
   }
 }
 
-export function enforceRotationPolicy(schedule, employees) {
-  const cells = { ...schedule.cells }
-  const alerts = [...(schedule.alerts || [])]
-  const add = (employee, date, rule, message) => {
-    alerts.push({
-      id: `${rule}-${alerts.length}`,
-      severity: 'CRITICAL',
-      employeeId: employee.id,
-      date,
-      rule,
-      message,
-    })
-  }
-
-  for (const employee of employees) {
-    for (const week of schedule.weeks || []) {
-      const homeDays = week.workdays.filter((date) => cells[`${employee.id}__${date}`]?.status === 'HOME')
-      for (const date of homeDays) {
-        if (isRotationEligible(employee) && (!hasHardRestriction(employee) || isDateAllowedForEmployee(employee, date))) continue
-        const key = `${employee.id}__${date}`
-        cells[key] = { ...cells[key], status: 'OFFICE', source: 'SYSTEM', alerts: ['TC retirado por politica obligatoria'] }
-        add(employee, date, 'INVALID_HOME_REMOVED', `${employee.name}: TC retirado porque no cumple aprobacion o restriccion.`)
-      }
-
-      const validHomeDays = week.workdays
-        .filter((date) => cells[`${employee.id}__${date}`]?.status === 'HOME')
-        .sort((left, right) => {
-          const leftManual = cells[`${employee.id}__${left}`]?.source === 'MANUAL' ? 0 : 1
-          const rightManual = cells[`${employee.id}__${right}`]?.source === 'MANUAL' ? 0 : 1
-          return leftManual - rightManual || left.localeCompare(right)
-        })
-      validHomeDays.slice(weeklyHomeTarget(employee)).forEach((date) => {
-        const key = `${employee.id}__${date}`
-        cells[key] = { ...cells[key], status: 'OFFICE', source: 'SYSTEM', alerts: ['TC retirado por limite semanal'] }
-        add(employee, date, 'EXTRA_HOME_REMOVED', `${employee.name}: TC retirado porque supera su limite semanal.`)
-      })
-    }
-  }
-
-  return { ...schedule, cells, alerts }
-}
-
 // ---- Generación principal -------------------------------------------------
 export function generateMonthlySchedule(ctx) {
   const { employees, holidays, absences, manualOverrides, month, year, params, generationSeed = 0 } = ctx
@@ -393,7 +450,8 @@ export function generateMonthlySchedule(ctx) {
   const weeks = getWorkdaysByWeek(year, month, holidays)
 
   // Elegibles: activos + híbrido aprobado
-  const eligible = employees.filter(isRotationEligible)
+  const eligible = employees.filter((e) => e.isActive && e.hybridApproved)
+  const employeesById = Object.fromEntries(employees.map((employee) => [employee.id, employee]))
 
   // Mapa de celdas: key = `${empId}__${iso}`
   const cells = {}
@@ -436,6 +494,8 @@ export function generateMonthlySchedule(ctx) {
     const workdays = week.workdays
     if (workdays.length === 0) continue
 
+    assignSharedDeskAlternation({ week, weekIndex, cells, homeCountByDay, officeHomeAssignmentsByDay, employeesById })
+
     // Orden: primero quienes tienen menos opciones (restricciones más rígidas)
     const order = [...eligible].sort((a, b) => {
       if (!!a.doubleHomeConsecutive !== !!b.doubleHomeConsecutive) {
@@ -450,6 +510,8 @@ export function generateMonthlySchedule(ctx) {
     })
 
     for (const e of order) {
+      if (isSharedDeskEmployee(e.id)) continue
+
       if (e.doubleHomeConsecutive) {
         const monthWorkdays = days.filter((day) => !isWeekend(day) && !isHoliday(day, holidays))
         const buildPairs = (dates) => e.avoidConsecutiveHomeDays
@@ -470,7 +532,7 @@ export function generateMonthlySchedule(ctx) {
         let brokeRestriction = false
         const hardRestriction = hasHardRestriction(e)
         if (pairs.length === 0) {
-          if (hardRestriction) {
+          if (hardRestriction && workdays.length <= 2) {
             addAlert('INFO',
               `${e.name}: semana corta sin dos dias compatibles con su restriccion; sin TC doble esta semana.`,
               'SHORT_WEEK_DOUBLE_RESTRICTION', { employeeId: e.id })
@@ -550,7 +612,7 @@ export function generateMonthlySchedule(ctx) {
       if (candidates.length === 0) {
         // En semanas cortas (≤2 días hábiles) no rompemos una restricción dura:
         // es preferible no asignar TC esa semana y compensar en otra.
-        if (hardRestriction) {
+        if (hardRestriction && workdays.length <= 2) {
           addAlert('INFO',
             `${e.name}: semana corta sin día compatible con su restricción; sin TC esta semana.`,
             'SHORT_WEEK_RESTRICTION', { employeeId: e.id })
