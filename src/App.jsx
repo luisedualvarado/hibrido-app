@@ -11,12 +11,14 @@ import { Absences, Holidays, Parking, Office93Rotation, Lockers, ManualOverrides
 import { initialEmployees } from './data/initialEmployees.js'
 import { initialHolidays, initialAbsences, defaultParameters } from './data/initialHolidays.js'
 
-import { enforceNoOfficeOvercapacity, generateMonthlySchedule } from './logic/scheduleGenerator.js'
+import { enforceNoOfficeOvercapacity, enforceRotationPolicy, generateMonthlySchedule } from './logic/scheduleGenerator.js'
 import { assignParkingForMonth, parkingUsageByDay, assignFloatingSeats, applyManualOverrides } from './logic/parkingGenerator.js'
 import { assignOffice93ForMonth, applyOffice93Assignment } from './logic/locationRotation.js'
 import { assignLockersForMonth } from './logic/lockerGenerator.js'
 import { buildDailySummary, validateSchedule, buildDashboardKPIs } from './logic/validators.js'
 import { MONTH_LABEL, isHoliday, isOddCalendarDay, isWeekend } from './logic/dateUtils.js'
+import { createAuditEntry } from './logic/snapshot.js'
+import { isSupabaseConfigured, loadCloudSnapshot, saveCloudSnapshot, supabase } from './lib/supabase.js'
 
 const TITLES = {
   dashboard: 'Dashboard',
@@ -133,9 +135,7 @@ const PUBLIC_JUNE_IVONNE_ABSENCE_DATES = new Set([
 const STORAGE_KEY = 'hibrido-app-state-v2'
 const BACKUP_KEY = 'hibrido-app-state-v2-backup'
 const BACKUP_HISTORY_KEY = 'hibrido-app-state-v2-backups'
-const ADMIN_SESSION_KEY = 'hibrido-app-admin-session'
-const ADMIN_USERNAME = import.meta.env.VITE_ADMIN_USERNAME || 'admin'
-const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'admin123'
+const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL || ''
 const INITIAL_EMPLOYEES_BY_ID = Object.fromEntries(initialEmployees.map((employee) => [employee.id, employee]))
 
 function buildSavedWeekEntry(week) {
@@ -265,14 +265,6 @@ function loadStoredState() {
   }
 }
 
-function loadAdminSession() {
-  try {
-    return window.sessionStorage.getItem(ADMIN_SESSION_KEY) === 'true'
-  } catch (error) {
-    return false
-  }
-}
-
 function applyPublicJuneOffice93Adjustments(schedule, employees, holidays) {
   const adjustedEmployees = employees.map((employee) => (
     PUBLIC_JUNE_EMPLOYEE_OVERRIDES[employee.id]
@@ -338,8 +330,9 @@ function applyPublicJuneOffice93Adjustments(schedule, employees, holidays) {
 export default function App() {
   const now = new Date()
   const stored = useMemo(() => loadStoredState(), [])
-  const [isAdmin, setIsAdmin] = useState(() => loadAdminSession())
+  const [isAdmin, setIsAdmin] = useState(false)
   const [authError, setAuthError] = useState('')
+  const [cloudStatus, setCloudStatus] = useState(isSupabaseConfigured ? 'CONNECTING' : 'LOCAL')
   const isReadOnly = PUBLIC_READ_ONLY && !isAdmin
   const editableStored = isReadOnly ? {} : stored
   const initialPeriod = useMemo(() => normalizePeriod(
@@ -360,6 +353,8 @@ export default function App() {
   const [manualLockersByPeriod, setManualLockersByPeriod] = useState(editableStored.manualLockersByPeriod || {})
   const [manualDeskAssignmentsByPeriod, setManualDeskAssignmentsByPeriod] = useState(editableStored.manualDeskAssignmentsByPeriod || {})
   const [savedWeeksByPeriod, setSavedWeeksByPeriod] = useState(editableStored.savedWeeksByPeriod || {})
+  const [publicationByPeriod, setPublicationByPeriod] = useState(editableStored.publicationByPeriod || {})
+  const [auditLog, setAuditLog] = useState(editableStored.auditLog || [])
   const [didHydrateStoredState, setDidHydrateStoredState] = useState(false)
   const [generationTick, setGenerationTick] = useState(0)
   const periodKey = periodKeyFor(year, month)
@@ -368,26 +363,38 @@ export default function App() {
   const manualLockers = manualLockersByPeriod[periodKey] || EMPTY_ARRAY
   const manualDeskAssignments = manualDeskAssignmentsByPeriod[periodKey] || EMPTY_ARRAY
   const savedWeeks = savedWeeksByPeriod[periodKey] || EMPTY_ARRAY
+  const publicationStatus = publicationByPeriod[periodKey] || 'DRAFT'
+
+  const addAudit = useCallback((action, detail = '') => {
+    setAuditLog((prev) => [createAuditEntry(action, periodKey, detail), ...prev].slice(0, 100))
+  }, [periodKey])
 
   const setSafeView = useCallback((nextView) => {
     setView(isReadOnly && !PUBLIC_VIEWS.includes(nextView) ? 'dashboard' : nextView)
   }, [isReadOnly])
 
-  const handleAdminLogin = useCallback((username, password) => {
+  const handleAdminLogin = useCallback(async (username, password) => {
+    if (!supabase) {
+      setAuthError('Supabase no esta configurado. Agrega las variables VITE_SUPABASE_*.')
+      return false
+    }
     const normalizedUsername = username.trim()
-    if (normalizedUsername !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) {
+    const email = normalizedUsername.includes('@') ? normalizedUsername : ADMIN_EMAIL
+    if (!email || (ADMIN_EMAIL && email.toLowerCase() !== ADMIN_EMAIL.toLowerCase())) {
+      setAuthError('Usa el correo configurado para el unico administrador.')
+      return false
+    }
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) {
       setAuthError('Credenciales admin invalidas.')
       return false
     }
-
-    window.sessionStorage.setItem(ADMIN_SESSION_KEY, 'true')
-    setIsAdmin(true)
     setAuthError('')
     return true
   }, [])
 
-  const handleAdminLogout = useCallback(() => {
-    window.sessionStorage.removeItem(ADMIN_SESSION_KEY)
+  const handleAdminLogout = useCallback(async () => {
+    if (supabase) await supabase.auth.signOut()
     setIsAdmin(false)
     setAuthError('')
     setView('dashboard')
@@ -399,12 +406,6 @@ export default function App() {
       setMonth(MIN_MONTH)
     }
   }, [isReadOnly, month, year])
-
-  useEffect(() => {
-    if (!PUBLIC_READ_ONLY) return
-    if (isAdmin) window.sessionStorage.setItem(ADMIN_SESSION_KEY, 'true')
-    else window.sessionStorage.removeItem(ADMIN_SESSION_KEY)
-  }, [isAdmin])
 
   const setManualOffice93ForPeriod = useCallback((updater) => {
     setManualOffice93ByPeriod((prev) => {
@@ -485,7 +486,7 @@ export default function App() {
     const publicJuneAdjusted = isPublishedJune
       ? applyPublicJuneOffice93Adjustments(schedule, effectiveEmployees, holidays)
       : { schedule, employees: effectiveEmployees }
-    const effectiveSchedule = publicJuneAdjusted.schedule
+    const effectiveSchedule = enforceRotationPolicy(publicJuneAdjusted.schedule, publicJuneAdjusted.employees)
     const effectiveEmployeesView = publicJuneAdjusted.employees
 
     const parkingAssignedAuto = assignParkingForMonth({
@@ -570,11 +571,13 @@ export default function App() {
       const without = prev.filter((o) => !(o.employeeId === employeeId && o.date === date))
       return [...without, { id: `${employeeId}-${date}`, employeeId, date, status, reason, createdAt: new Date().toISOString() }]
     })
-  }, [])
+    addAudit('Ajuste manual', `${employeeId} · ${date} · ${status}`)
+  }, [addAudit])
 
   const deleteOverride = useCallback((employeeId, date) => {
     setManualOverrides((prev) => prev.filter((o) => !(o.employeeId === employeeId && o.date === date)))
-  }, [])
+    addAudit('Ajuste eliminado', `${employeeId} · ${date}`)
+  }, [addAudit])
 
   const saveWeek = useCallback((week) => {
     const operationalStatuses = new Set(['HOME', 'OFFICE'])
@@ -646,6 +649,17 @@ export default function App() {
   }
   const regenerate = () => {
     setGenerationTick((tick) => tick + 1)
+    addAudit('Programacion regenerada')
+  }
+
+  const togglePublication = () => {
+    if (publicationStatus !== 'PUBLISHED' && computed.kpis.criticalAlerts > 0) {
+      window.alert(`No se puede publicar: hay ${computed.kpis.criticalAlerts} alerta(s) critica(s).`)
+      return
+    }
+    const next = publicationStatus === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED'
+    setPublicationByPeriod((prev) => ({ ...prev, [periodKey]: next }))
+    addAudit(next === 'PUBLISHED' ? 'Programacion publicada' : 'Programacion devuelta a borrador')
   }
 
   const buildSnapshot = () => ({
@@ -662,6 +676,8 @@ export default function App() {
     manualLockersByPeriod,
     manualDeskAssignmentsByPeriod,
     savedWeeksByPeriod,
+    publicationByPeriod,
+    auditLog,
   })
 
   const importSnapshot = (snap) => {
@@ -681,6 +697,8 @@ export default function App() {
     if (snap.manualLockersByPeriod) setManualLockersByPeriod(snap.manualLockersByPeriod)
     if (snap.manualDeskAssignmentsByPeriod) setManualDeskAssignmentsByPeriod(snap.manualDeskAssignmentsByPeriod)
     if (snap.savedWeeksByPeriod) setSavedWeeksByPeriod(snap.savedWeeksByPeriod)
+    if (snap.publicationByPeriod) setPublicationByPeriod(snap.publicationByPeriod)
+    if (snap.auditLog) setAuditLog(snap.auditLog)
     else if (snap.manualOffice93) {
       const importedKey = periodKeyFor(nextPeriod.year, nextPeriod.month)
       setManualOffice93ByPeriod({ [importedKey]: snap.manualOffice93 })
@@ -699,14 +717,59 @@ export default function App() {
   }
 
   useEffect(() => {
-    if (!PUBLIC_READ_ONLY || !isAdmin || didHydrateStoredState) return
-    if (!stored.employees?.length) {
+    if (!supabase) {
+      setCloudStatus('LOCAL')
       setDidHydrateStoredState(true)
-      return
+      return undefined
     }
-    importSnapshot(stored)
-    setDidHydrateStoredState(true)
-  }, [didHydrateStoredState, isAdmin, stored])
+
+    let active = true
+    const hydrateSession = async (session) => {
+      if (!active) return
+      if (!session?.user) {
+        setIsAdmin(false)
+        setCloudStatus('READY')
+        setDidHydrateStoredState(false)
+        return
+      }
+      if (ADMIN_EMAIL && session.user.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+        await supabase.auth.signOut()
+        setAuthError('Esta cuenta no es el administrador autorizado.')
+        return
+      }
+
+      setIsAdmin(true)
+      setCloudStatus('SYNCING')
+      try {
+        const cloudSnapshot = await loadCloudSnapshot()
+        if (cloudSnapshot?.employees?.length) {
+          importSnapshot(cloudSnapshot)
+        } else if (stored.employees?.length) {
+          importSnapshot(stored)
+          await saveCloudSnapshot(stored)
+        }
+        if (active) {
+          setDidHydrateStoredState(true)
+          setCloudStatus('SYNCED')
+        }
+      } catch (error) {
+        if (active) {
+          setAuthError(`No se pudo cargar Supabase: ${error.message}`)
+          setCloudStatus('ERROR')
+        }
+      }
+    }
+
+    supabase.auth.getSession().then(({ data }) => hydrateSession(data.session))
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') hydrateSession(session)
+      if (event === 'SIGNED_OUT') hydrateSession(null)
+    })
+    return () => {
+      active = false
+      listener.subscription.unsubscribe()
+    }
+  }, [stored])
 
   useEffect(() => {
     if (isReadOnly) return
@@ -724,12 +787,45 @@ export default function App() {
       manualLockersByPeriod,
       manualDeskAssignmentsByPeriod,
       savedWeeksByPeriod,
+      publicationByPeriod,
+      auditLog,
     }
     const previous = window.localStorage.getItem(STORAGE_KEY)
     const next = JSON.stringify(state)
     if (previous && previous !== next) rememberBackup(previous)
     window.localStorage.setItem(STORAGE_KEY, next)
-  }, [employees, holidays, absences, manualOverrides, params, month, year, manualParking, manualOffice93ByPeriod, manualLockersByPeriod, manualDeskAssignmentsByPeriod, savedWeeksByPeriod, isReadOnly])
+  }, [employees, holidays, absences, manualOverrides, params, month, year, manualParking, manualOffice93ByPeriod, manualLockersByPeriod, manualDeskAssignmentsByPeriod, savedWeeksByPeriod, publicationByPeriod, auditLog, isReadOnly])
+
+  useEffect(() => {
+    if (!supabase || !isAdmin || !didHydrateStoredState) return undefined
+    const state = {
+      version: 3,
+      employees,
+      holidays,
+      absences,
+      manualOverrides,
+      params,
+      month,
+      year,
+      manualParking,
+      manualOffice93ByPeriod,
+      manualLockersByPeriod,
+      manualDeskAssignmentsByPeriod,
+      savedWeeksByPeriod,
+      publicationByPeriod,
+      auditLog,
+    }
+    setCloudStatus('SYNCING')
+    const timer = window.setTimeout(() => {
+      saveCloudSnapshot(state)
+        .then(() => setCloudStatus('SYNCED'))
+        .catch((error) => {
+          setAuthError(`No se pudo guardar en Supabase: ${error.message}`)
+          setCloudStatus('ERROR')
+        })
+    }, 700)
+    return () => window.clearTimeout(timer)
+  }, [employees, holidays, absences, manualOverrides, params, month, year, manualParking, manualOffice93ByPeriod, manualLockersByPeriod, manualDeskAssignmentsByPeriod, savedWeeksByPeriod, publicationByPeriod, auditLog, isAdmin, didHydrateStoredState])
 
   useEffect(() => {
     if (isReadOnly && !PUBLIC_VIEWS.includes(view)) setView('dashboard')
@@ -751,7 +847,7 @@ export default function App() {
           <div>
             <h2>{TITLES[view]}</h2>
             <div className="meta">
-              {MONTH_LABEL[month]} {year} · {computed.kpis.approvedCount} en rotacion · {computed.office93Assigned.length} en Oficina 93 · {computed.kpis.criticalAlerts} alertas criticas
+              {MONTH_LABEL[month]} {year} · {publicationStatus === 'PUBLISHED' ? 'Publicado' : 'Borrador'} · {cloudStatus === 'SYNCED' ? 'Supabase sincronizado' : cloudStatus === 'LOCAL' ? 'Solo local' : 'Supabase ' + cloudStatus.toLowerCase()} · {computed.kpis.approvedCount} en rotacion · {computed.office93Assigned.length} en Oficina 93 · {computed.kpis.criticalAlerts} alertas criticas
             </div>
           </div>
           <div className="topbar-actions">
@@ -775,6 +871,11 @@ export default function App() {
             )}
             {!isReadOnly && <button className="btn btn-ghost" onClick={clearOverrides}>Limpiar ajustes</button>}
             {!isReadOnly && <button className="btn btn-green" onClick={regenerate}>Generar programacion</button>}
+            {!isReadOnly && (
+              <button className={`btn ${publicationStatus === 'PUBLISHED' ? 'btn-primary' : 'btn-ghost'}`} onClick={togglePublication}>
+                {publicationStatus === 'PUBLISHED' ? 'Publicado · volver a borrador' : 'Publicar mes'}
+              </button>
+            )}
           </div>
         </header>
         <main className="content">
@@ -875,6 +976,7 @@ export default function App() {
               alerts={computed.allAlerts}
               onImport={importSnapshot}
               onRestoreBackup={restoreBackup}
+              auditLog={auditLog}
             />
           )}
         </main>

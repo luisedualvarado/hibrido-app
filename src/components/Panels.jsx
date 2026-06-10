@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { prettyDate, MONTH_LABEL } from '../logic/dateUtils.js'
 import { exportToCSV, exportToJSON, scheduleToRows, summaryToRows, alertsToRows } from '../logic/exporters.js'
 import { buildLockerCodes } from '../logic/lockerGenerator.js'
+import { validateSnapshot } from '../logic/snapshot.js'
 
 const byName = (a, b) => a.name.localeCompare(b.name, 'es')
 
@@ -547,15 +548,27 @@ export function Settings({ params, setParams }) {
 }
 
 /* ---------------- Export / Import ---------------- */
-export function ExportPanel({ buildSnapshot, schedule, employees, summary, alerts, onImport, onRestoreBackup }) {
+export function ExportPanel({ buildSnapshot, schedule, employees, summary, alerts, onImport, onRestoreBackup, auditLog = [] }) {
   const fileRef = React.useRef()
+  const [importError, setImportError] = useState('')
   const doImport = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
     try {
       const text = await file.text()
-      onImport(JSON.parse(text))
-    } catch (err) { alert('Archivo JSON inválido.') }
+      const snapshot = JSON.parse(text)
+      const validation = validateSnapshot(snapshot)
+      if (!validation.valid) {
+        setImportError(validation.errors.slice(0, 5).join(' '))
+        return
+      }
+      setImportError('')
+      onImport(snapshot)
+    } catch (err) {
+      setImportError('Archivo JSON invalido.')
+    } finally {
+      e.target.value = ''
+    }
   }
   return (
     <div className="grid2">
@@ -566,7 +579,7 @@ export function ExportPanel({ buildSnapshot, schedule, employees, summary, alert
           <button className="btn" onClick={() => exportToCSV(summaryToRows(summary), 'resumen_diario.csv')}>Exportar resumen diario CSV</button>
           <button className="btn" onClick={() => exportToCSV(alertsToRows(alerts), 'alertas.csv')}>Exportar alertas CSV</button>
           <button className="btn btn-primary" onClick={() => exportToJSON(buildSnapshot(), 'config_hibrido.json')}>Exportar JSON de datos</button>
-          <button className="btn btn-ghost" onClick={() => alert('Generación de PDF disponible en una versión posterior.')}>Exportar PDF (próximamente)</button>
+          <button className="btn btn-ghost" onClick={() => window.print()}>Imprimir / Guardar PDF</button>
         </div>
       </div>
       <div className="card">
@@ -576,6 +589,19 @@ export function ExportPanel({ buildSnapshot, schedule, employees, summary, alert
           <input ref={fileRef} type="file" accept="application/json" style={{ display: 'none' }} onChange={doImport} />
           <button className="btn btn-primary" onClick={() => fileRef.current?.click()}>Importar JSON de datos</button>
           <button className="btn btn-ghost" style={{ marginLeft: 8 }} onClick={onRestoreBackup}>Restaurar respaldo local</button>
+          {importError && <div className="alert-item CRITICAL" style={{ marginTop: 12 }}>{importError}</div>}
+          <div className="section-title" style={{ marginTop: 22 }}>Historial reciente</div>
+          {auditLog.length === 0 ? <div className="muted">Sin cambios registrados.</div> : (
+            <div style={{ maxHeight: 240, overflow: 'auto' }}>
+              {auditLog.slice(0, 20).map((entry) => (
+                <div key={entry.id} className="alert-item INFO">
+                  <span>{new Date(entry.createdAt).toLocaleString('es-CO')}</span>
+                  <strong>{entry.action}</strong>
+                  <span>{entry.detail}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
